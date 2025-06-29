@@ -1,0 +1,518 @@
+from flask import Flask, request, jsonify, Response
+from flask_cors import CORS
+import json
+import numpy as np
+import faiss
+import pickle
+from sentence_transformers import SentenceTransformer
+import os
+import sys
+import re
+from openai import OpenAI
+from dotenv import load_dotenv
+import time
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Add parent directory to path to import modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+app = Flask(__name__)
+CORS(app)
+
+# Global variables for loaded data
+model = None
+index = None
+article_ids = None
+articles_data = None
+
+# OpenAI API configuration
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+def contains_chinese(text):
+    """Check if text contains Chinese characters"""
+    return bool(re.search(r'[\u4e00-\u9fff]', text))
+
+def translate_with_chatgpt(query):
+    """Translate query using ChatGPT API"""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a medical translator. Translate mixed Chinese-English medical queries to English. Keep English terms unchanged, only translate Chinese parts. Return only the translated text without explanation."
+                },
+                {
+                    "role": "user",
+                    "content": query
+                }
+            ],
+            max_tokens=100,
+            temperature=0.1
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Translation error: {str(e)}")
+        return query  # Return original query if translation fails
+
+def build_context_from_articles(articles, max_length=4000):
+    """Build context string from retrieved articles"""
+    context_parts = []
+    current_length = 0
+    
+    for article in articles:
+        # Format article information
+        article_text = f"PMID: {article['pmid']}\n"
+        article_text += f"Title: {article['title']}\n"
+        article_text += f"Journal: {article['journal']}\n"
+        article_text += f"Publication Date: {article['pub_date']}\n"
+        article_text += f"Abstract: {article['abstract']}\n"
+        article_text += f"Authors: {', '.join(article['authors'])}\n"
+        article_text += "-" * 50 + "\n"
+        
+        # Check if adding this article would exceed max length
+        if current_length + len(article_text) > max_length:
+            break
+            
+        context_parts.append(article_text)
+        current_length += len(article_text)
+    
+    return "\n".join(context_parts)
+
+def generate_rag_answer(question, context, original_question):
+    """Generate answer using RAG approach"""
+    try:
+        # Detect if the question is about a specific region
+        is_taiwan_question = any(keyword in original_question.lower() for keyword in ['台灣', 'taiwan', 'taiwanese'])
+        is_china_question = any(keyword in original_question.lower() for keyword in ['中國', 'china', 'chinese'])
+        is_korea_question = any(keyword in original_question.lower() for keyword in ['韓國', 'korea', 'korean'])
+        
+        # Build region-specific instructions
+        region_instruction = ""
+        if is_taiwan_question:
+            region_instruction = "Focus specifically on Taiwan and Taiwanese healthcare system. Prioritize Taiwan-specific information and minimize discussion of other countries unless directly relevant to Taiwan's context."
+        elif is_china_question:
+            region_instruction = "Focus specifically on China and Chinese healthcare system. Prioritize China-specific information and minimize discussion of other countries unless directly relevant to China's context."
+        elif is_korea_question:
+            region_instruction = "Focus specifically on Korea and Korean healthcare system. Prioritize Korea-specific information and minimize discussion of other countries unless directly relevant to Korea's context."
+        else:
+            region_instruction = "Provide a balanced analysis based on the available literature."
+        
+        prompt = f"""You are a medical research assistant specialized in helping with PubMed medical literature research.
+
+YOUR ROLE AND CAPABILITIES:
+- You can answer questions about medical research, healthcare systems, diseases, treatments, and health policy based on PubMed literature
+- You can provide guidance on how to use this system for medical research
+- You can suggest types of medical questions that would be helpful for research
+- You can help with academic writing and literature review related to medical topics
+- You CANNOT provide personal medical advice, diagnosis, or treatment recommendations
+- You CANNOT answer questions completely unrelated to medical research or healthcare
+
+Question: {original_question}
+
+Relevant Medical Literature:
+{context}
+
+Instructions:
+1. If the question is about how to use this system or what types of questions to ask, provide helpful guidance about medical research topics
+2. If the question is about academic writing, literature review, or research methodology related to medical topics, provide appropriate assistance
+3. If it's a specific medical research question, answer based on the provided literature
+4. {region_instruction}
+5. Cite specific PMIDs when referencing information from the literature
+6. If the literature doesn't contain enough information about the specific region/country asked, clearly state this limitation
+7. Be helpful and informative while staying within medical research scope
+8. If the question is in Chinese, answer in Chinese; if in English, answer in English
+9. Structure your answer logically with clear sections if appropriate
+
+Answer:"""
+
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a medical research assistant. You help with PubMed literature research, academic writing, and medical research guidance. You can answer questions about medical topics and provide guidance on using the system for research purposes. Always focus on the specific region or country mentioned in the question."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            max_tokens=800,
+            temperature=0.3
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"RAG answer generation error: {str(e)}")
+        return f"Sorry, I encountered an error while generating the answer: {str(e)}"
+
+def load_data():
+    """Load FAISS index and article data"""
+    global model, index, article_ids, articles_data
+    
+    print("Loading FAISS index and data...")
+    
+    # Load the sentence transformer model
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    
+    # Load FAISS index
+    index_path = "../../output/embeddings/faiss.index"
+    index = faiss.read_index(index_path)
+    
+    # Load article IDs
+    with open("../../output/embeddings/article_ids.json", 'r', encoding='utf-8') as f:
+        article_ids = json.load(f)
+    
+    # Load articles data
+    with open("../../output/cleaned_data/cleaned_articles.json", 'r', encoding='utf-8') as f:
+        articles_data = json.load(f)
+    
+    print(f"Loaded {len(article_ids)} articles and FAISS index")
+
+@app.route('/api/search', methods=['POST'])
+def search():
+    """Search articles using semantic similarity with translation support"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        top_k = data.get('top_k', 10)
+        
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        original_query = query
+        translated_query = query
+        
+        # Check if query contains Chinese characters
+        if contains_chinese(query):
+            print(f"Original query (contains Chinese): {query}")
+            translated_query = translate_with_chatgpt(query)
+            print(f"Translated query: {translated_query}")
+        
+        # Encode the query (use translated version if available)
+        query_embedding = model.encode([translated_query])
+        
+        # Search in FAISS index
+        distances, indices = index.search(query_embedding, top_k)
+        
+        # Get results
+        results = []
+        for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
+            if idx < len(article_ids):
+                pmid = article_ids[idx]
+                
+                # Find article data
+                article = None
+                for art in articles_data:
+                    if art.get('pmid') == pmid:
+                        article = art
+                        break
+                
+                if article:
+                    results.append({
+                        'rank': i + 1,
+                        'pmid': pmid,
+                        'title': article.get('title', ''),
+                        'abstract': article.get('abstract', ''),
+                        'journal': article.get('journal', ''),
+                        'pub_date': article.get('pub_date', ''),
+                        'authors': article.get('authors', []),
+                        'similarity_score': float(1 - distance)  # Convert distance to similarity
+                    })
+        
+        return jsonify({
+            'original_query': original_query,
+            'translated_query': translated_query,
+            'total_results': len(results),
+            'results': results
+        })
+        
+    except Exception as e:
+        print(f"Error in search: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/search_with_progress', methods=['POST'])
+def search_with_progress():
+    """Search articles with real-time progress updates"""
+    # Get request data outside of the generator
+    data = request.get_json()
+    query = data.get('query', '')
+    top_k = data.get('top_k', 10)
+    
+    if not query:
+        return jsonify({'error': 'Query is required'}), 400
+    
+    def generate():
+        try:
+            original_query = query
+            translated_query = query
+            
+            # Step 1: Check for Chinese characters
+            yield f"data: {json.dumps({'step': 'Detecting Chinese characters in query...', 'progress': 10})}\n\n"
+            time.sleep(0.5)  # Small delay for visual effect
+            
+            # Step 2: Translate if needed
+            if contains_chinese(query):
+                yield f"data: {json.dumps({'step': 'Translating query to English...', 'progress': 20})}\n\n"
+                print(f"Original query (contains Chinese): {query}")
+                translated_query = translate_with_chatgpt(query)
+                print(f"Translated query: {translated_query}")
+                time.sleep(0.5)
+            
+            # Step 3: Generate embedding
+            yield f"data: {json.dumps({'step': 'Generating query embedding...', 'progress': 40})}\n\n"
+            query_embedding = model.encode([translated_query])
+            time.sleep(0.5)
+            
+            # Step 4: Search in FAISS
+            yield f"data: {json.dumps({'step': 'Searching in vector database...', 'progress': 60})}\n\n"
+            distances, indices = index.search(query_embedding, top_k)
+            time.sleep(0.5)
+            
+            # Step 5: Retrieve article details
+            yield f"data: {json.dumps({'step': 'Retrieving article details...', 'progress': 80})}\n\n"
+            results = []
+            for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
+                if idx < len(article_ids):
+                    pmid = article_ids[idx]
+                    
+                    # Find article data
+                    article = None
+                    for art in articles_data:
+                        if art.get('pmid') == pmid:
+                            article = art
+                            break
+                    
+                    if article:
+                        results.append({
+                            'rank': i + 1,
+                            'pmid': pmid,
+                            'title': article.get('title', ''),
+                            'abstract': article.get('abstract', ''),
+                            'journal': article.get('journal', ''),
+                            'pub_date': article.get('pub_date', ''),
+                            'authors': article.get('authors', []),
+                            'similarity_score': float(1 - distance)
+                        })
+            
+            # Step 6: Complete
+            yield f"data: {json.dumps({'step': 'Search completed!', 'progress': 100})}\n\n"
+            time.sleep(0.5)
+            
+            # Final result
+            yield f"data: {json.dumps({'complete': True, 'original_query': original_query, 'translated_query': translated_query, 'total_results': len(results), 'results': results})}\n\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return Response(generate(), mimetype='text/plain')
+
+@app.route('/api/rag_qa_with_progress', methods=['POST'])
+def rag_qa_with_progress():
+    """RAG-based question answering with real-time progress updates"""
+    # Get request data outside of the generator
+    data = request.get_json()
+    question = data.get('question', '')
+    top_k = data.get('top_k', 8)
+    
+    if not question:
+        return jsonify({'error': 'Question is required'}), 400
+    
+    def generate():
+        try:
+            original_question = question
+            translated_question = question
+            
+            # Step 1: Check for Chinese characters
+            yield f"data: {json.dumps({'step': 'Detecting Chinese characters in question...', 'progress': 10})}\n\n"
+            time.sleep(0.5)
+            
+            # Step 2: Translate if needed
+            if contains_chinese(question):
+                yield f"data: {json.dumps({'step': 'Translating question to English...', 'progress': 20})}\n\n"
+                print(f"Original question (contains Chinese): {question}")
+                translated_question = translate_with_chatgpt(question)
+                print(f"Translated question: {translated_question}")
+                time.sleep(0.5)
+            
+            # Step 3: Generate embedding
+            yield f"data: {json.dumps({'step': 'Generating question embedding...', 'progress': 30})}\n\n"
+            question_embedding = model.encode([translated_question])
+            time.sleep(0.5)
+            
+            # Step 4: Search for relevant articles
+            yield f"data: {json.dumps({'step': 'Searching for relevant articles...', 'progress': 50})}\n\n"
+            distances, indices = index.search(question_embedding, top_k)
+            time.sleep(0.5)
+            
+            # Step 5: Retrieve article details
+            yield f"data: {json.dumps({'step': 'Retrieving article details...', 'progress': 70})}\n\n"
+            relevant_articles = []
+            for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
+                if idx < len(article_ids):
+                    pmid = article_ids[idx]
+                    
+                    # Find article data
+                    article = None
+                    for art in articles_data:
+                        if art.get('pmid') == pmid:
+                            article = art
+                            break
+                    
+                    if article:
+                        relevant_articles.append({
+                            'rank': i + 1,
+                            'pmid': pmid,
+                            'title': article.get('title', ''),
+                            'abstract': article.get('abstract', ''),
+                            'journal': article.get('journal', ''),
+                            'pub_date': article.get('pub_date', ''),
+                            'authors': article.get('authors', []),
+                            'similarity_score': float(1 - distance)
+                        })
+            
+            # Step 6: Build context
+            yield f"data: {json.dumps({'step': 'Building context from articles...', 'progress': 80})}\n\n"
+            context = build_context_from_articles(relevant_articles)
+            time.sleep(0.5)
+            
+            # Step 7: Generate AI answer
+            yield f"data: {json.dumps({'step': 'Generating AI answer...', 'progress': 90})}\n\n"
+            answer = generate_rag_answer(translated_question, context, original_question)
+            time.sleep(0.5)
+            
+            # Step 8: Complete
+            yield f"data: {json.dumps({'step': 'RAG analysis completed!', 'progress': 100})}\n\n"
+            time.sleep(0.5)
+            
+            # Final result
+            yield f"data: {json.dumps({'complete': True, 'original_question': original_question, 'translated_question': translated_question, 'answer': answer, 'relevant_articles': relevant_articles, 'articles_used': len(relevant_articles)})}\n\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return Response(generate(), mimetype='text/plain')
+
+@app.route('/api/rag_qa', methods=['POST'])
+def rag_question_answer():
+    """RAG-based question answering system"""
+    try:
+        data = request.get_json()
+        question = data.get('question', '')
+        top_k = data.get('top_k', 8)  # Default to 8 articles for RAG
+        
+        if not question:
+            return jsonify({'error': 'Question is required'}), 400
+        
+        original_question = question
+        translated_question = question
+        
+        # Check if question contains Chinese characters
+        if contains_chinese(question):
+            print(f"Original question (contains Chinese): {question}")
+            translated_question = translate_with_chatgpt(question)
+            print(f"Translated question: {translated_question}")
+        
+        # Encode the question (use translated version if available)
+        question_embedding = model.encode([translated_question])
+        
+        # Search in FAISS index
+        distances, indices = index.search(question_embedding, top_k)
+        
+        # Get relevant articles
+        relevant_articles = []
+        for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
+            if idx < len(article_ids):
+                pmid = article_ids[idx]
+                
+                # Find article data
+                article = None
+                for art in articles_data:
+                    if art.get('pmid') == pmid:
+                        article = art
+                        break
+                
+                if article:
+                    relevant_articles.append({
+                        'rank': i + 1,
+                        'pmid': pmid,
+                        'title': article.get('title', ''),
+                        'abstract': article.get('abstract', ''),
+                        'journal': article.get('journal', ''),
+                        'pub_date': article.get('pub_date', ''),
+                        'authors': article.get('authors', []),
+                        'similarity_score': float(1 - distance)
+                    })
+        
+        # Build context from relevant articles
+        context = build_context_from_articles(relevant_articles)
+        
+        # Generate answer using RAG
+        answer = generate_rag_answer(translated_question, context, original_question)
+        
+        return jsonify({
+            'original_question': original_question,
+            'translated_question': translated_question,
+            'answer': answer,
+            'relevant_articles': relevant_articles,
+            'articles_used': len(relevant_articles)
+        })
+        
+    except Exception as e:
+        print(f"Error in RAG QA: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/translate', methods=['POST'])
+def translate():
+    """Translate query using ChatGPT"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        if contains_chinese(query):
+            translated = translate_with_chatgpt(query)
+            return jsonify({
+                'original': query,
+                'translated': translated,
+                'contains_chinese': True
+            })
+        else:
+            return jsonify({
+                'original': query,
+                'translated': query,
+                'contains_chinese': False
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    """Get database statistics"""
+    try:
+        return jsonify({
+            'total_articles': len(article_ids),
+            'index_size': index.ntotal if index else 0,
+            'model_name': 'all-MiniLM-L6-v2',
+            'translation_support': True,
+            'rag_support': True
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({'status': 'healthy', 'message': 'PubMed Search API with Translation and RAG is running'})
+
+if __name__ == '__main__':
+    # Load data on startup
+    load_data()
+    
+    # Run the Flask app
+    app.run(debug=True, host='0.0.0.0', port=5000) 
