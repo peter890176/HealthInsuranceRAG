@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Container, Typography, TextField, Button, Box, CircularProgress, List, ListItem, ListItemText, Paper, Chip, Tabs, Tab, LinearProgress, Alert } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, CircularProgress, List, ListItem, ListItemText, Paper, Chip, Tabs, Tab, LinearProgress, Alert, Card, CardContent } from '@mui/material';
+import { CheckCircle, RadioButtonUnchecked, RadioButtonChecked } from '@mui/icons-material';
 
 function App() {
   const [activeTab, setActiveTab] = useState(0);
@@ -15,6 +16,53 @@ function App() {
   const [currentStep, setCurrentStep] = useState('');
   const [progress, setProgress] = useState(0);
   const [completedSteps, setCompletedSteps] = useState([]);
+
+  // Define step configurations
+  const searchSteps = [
+    { id: 'detect', label: 'Detecting Chinese characters in query...', progress: 10 },
+    { id: 'translate', label: 'Translating query to English...', progress: 20 },
+    { id: 'embed', label: 'Generating query embedding...', progress: 40 },
+    { id: 'search', label: 'Searching in vector database...', progress: 60 },
+    { id: 'retrieve', label: 'Retrieving article details...', progress: 80 },
+    { id: 'complete', label: 'Search completed!', progress: 100 }
+  ];
+
+  const ragSteps = [
+    { id: 'detect', label: 'Detecting Chinese characters in question...', progress: 10 },
+    { id: 'translate', label: 'Translating question to English...', progress: 20 },
+    { id: 'embed', label: 'Generating question embedding...', progress: 30 },
+    { id: 'search', label: 'Searching for relevant articles...', progress: 50 },
+    { id: 'retrieve', label: 'Retrieving article details...', progress: 70 },
+    { id: 'context', label: 'Building context from articles...', progress: 80 },
+    { id: 'generate', label: 'Generating AI answer...', progress: 90 },
+    { id: 'complete', label: 'RAG analysis completed!', progress: 100 }
+  ];
+
+  const getCurrentSteps = () => {
+    return activeTab === 0 ? searchSteps : ragSteps;
+  };
+
+  const getStepStatus = (step) => {
+    // Check if this step is completed
+    if (completedSteps.includes(step.label)) {
+      return 'completed';
+    } 
+    // Check if this step is currently being processed
+    else if (currentStep === step.label) {
+      return 'current';
+    } 
+    // Check if any step after this one is completed (meaning this step should be completed)
+    else {
+      const currentStepIndex = getCurrentSteps().findIndex(s => s.label === step.label);
+      const completedStepIndex = getCurrentSteps().findIndex(s => completedSteps.includes(s.label));
+      
+      if (completedStepIndex > currentStepIndex) {
+        return 'completed';
+      } else {
+        return 'pending';
+      }
+    }
+  };
 
   const handleSearch = async () => {
     setLoading(true);
@@ -162,6 +210,78 @@ function App() {
     setCurrentStep('');
     setProgress(0);
     setCompletedSteps([]);
+  };
+
+  const TimelineStep = ({ step, status, isLast }) => {
+    const getStepIcon = () => {
+      switch (status) {
+        case 'completed':
+          return <CheckCircle sx={{ color: 'success.main', fontSize: 24 }} />;
+        case 'current':
+          return <RadioButtonChecked sx={{ color: 'primary.main', fontSize: 24 }} />;
+        default:
+          return <RadioButtonUnchecked sx={{ color: 'grey.400', fontSize: 24 }} />;
+      }
+    };
+
+    const getStepColor = () => {
+      switch (status) {
+        case 'completed':
+          return 'success.main';
+        case 'current':
+          return 'primary.main';
+        default:
+          return 'grey.400';
+      }
+    };
+
+    // Get display name (remove trailing dots and ellipsis)
+    const getDisplayName = (label) => {
+      return label.replace(/\.\.\.$/, '').replace(/!$/, '');
+    };
+
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            bgcolor: status === 'current' ? 'primary.50' : 'background.paper',
+            border: 2,
+            borderColor: getStepColor(),
+            mb: 1
+          }}>
+            {getStepIcon()}
+          </Box>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              textAlign: 'center',
+              color: getStepColor(),
+              fontWeight: status === 'current' ? 'bold' : 'normal',
+              fontSize: '0.7rem',
+              maxWidth: 120,
+              lineHeight: 1.2
+            }}
+          >
+            {getDisplayName(step.label)}
+          </Typography>
+        </Box>
+        {!isLast && (
+          <Box sx={{ 
+            flex: 1,
+            height: 2, 
+            bgcolor: status === 'completed' ? 'success.main' : 'grey.300',
+            mx: 1,
+            transition: 'background-color 0.3s ease'
+          }} />
+        )}
+      </Box>
+    );
   };
 
   return (
@@ -317,52 +437,34 @@ function App() {
         </Box>
       )}
       
-      {/* Real-time Progress Display */}
+      {/* Timeline Flow Chart */}
       {loading && (
         <Box sx={{ mt: 3, mb: 3 }}>
-          <Paper sx={{ p: 2, bgcolor: 'primary.light' }}>
-            <Typography variant="h6" gutterBottom color="white">
-              Processing...
+          <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
+            <Typography variant="h6" gutterBottom align="center">
+              Processing Timeline
             </Typography>
-            <LinearProgress 
-              variant="determinate" 
-              value={progress} 
-              sx={{ mb: 2, height: 8, borderRadius: 4 }}
-            />
-            {currentStep && (
-              <Box>
-                <Typography variant="body2" color="white" gutterBottom>
-                  Current step: {currentStep}
-                </Typography>
-                <Typography variant="caption" color="white">
-                  Progress: {progress}% | Completed steps: {completedSteps.length}
-                </Typography>
-              </Box>
-            )}
-          </Paper>
-        </Box>
-      )}
-      
-      {/* Completed Steps History */}
-      {!loading && completedSteps.length > 0 && (
-        <Box sx={{ mt: 2, mb: 2 }}>
-          <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-            <Typography variant="h6" gutterBottom>
-              Processing Steps Completed
-            </Typography>
-            <List dense>
-              {completedSteps.map((step, index) => (
-                <ListItem key={index} sx={{ py: 0.5 }}>
-                  <ListItemText 
-                    primary={step}
-                    primaryTypographyProps={{ 
-                      variant: 'body2',
-                      color: 'text.secondary'
-                    }}
-                  />
-                </ListItem>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              overflowX: 'auto',
+              py: 2,
+              px: 1
+            }}>
+              {getCurrentSteps().map((step, index) => (
+                <TimelineStep 
+                  key={step.id}
+                  step={step} 
+                  status={getStepStatus(step)}
+                  isLast={index === getCurrentSteps().length - 1}
+                />
               ))}
-            </List>
+            </Box>
+            {currentStep && (
+              <Typography variant="body2" align="center" color="primary.main" sx={{ mt: 2 }}>
+                Current: {currentStep}
+              </Typography>
+            )}
           </Paper>
         </Box>
       )}
