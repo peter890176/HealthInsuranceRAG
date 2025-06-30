@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import MainLayout from './layouts/MainLayout';
@@ -36,6 +36,24 @@ const theme = createTheme({
 });
 
 function App() {
+  // Shared state for both pages
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [searchTopK, setSearchTopK] = useState(10);
+  const [searchCompletedSteps, setSearchCompletedSteps] = useState([]);
+  const [searchCurrentStep, setSearchCurrentStep] = useState('');
+  const [searchTranslationInfo, setSearchTranslationInfo] = useState(null);
+
+  const [ragQuestion, setRagQuestion] = useState('');
+  const [ragAnswer, setRagAnswer] = useState(null);
+  const [ragLoading, setRagLoading] = useState(false);
+  const [ragError, setRagError] = useState('');
+  const [ragCompletedSteps, setRagCompletedSteps] = useState([]);
+  const [ragCurrentStep, setRagCurrentStep] = useState('');
+  const [ragTranslationInfo, setRagTranslationInfo] = useState(null);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -43,8 +61,50 @@ function App() {
         <MainLayout>
           <Routes>
             <Route path="/" element={<Navigate replace to="/search" />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/rag" element={<RagQaPage />} />
+            <Route 
+              path="/search" 
+              element={
+                <SearchPage 
+                  query={searchQuery}
+                  setQuery={setSearchQuery}
+                  results={searchResults}
+                  setResults={setSearchResults}
+                  loading={searchLoading}
+                  setLoading={setSearchLoading}
+                  error={searchError}
+                  setError={setSearchError}
+                  topK={searchTopK}
+                  setTopK={setSearchTopK}
+                  completedSteps={searchCompletedSteps}
+                  setCompletedSteps={setSearchCompletedSteps}
+                  currentStep={searchCurrentStep}
+                  setCurrentStep={setSearchCurrentStep}
+                  translationInfo={searchTranslationInfo}
+                  setTranslationInfo={setSearchTranslationInfo}
+                />
+              } 
+            />
+            <Route 
+              path="/rag" 
+              element={
+                <RagQaPage 
+                  question={ragQuestion}
+                  setQuestion={setRagQuestion}
+                  answer={ragAnswer}
+                  setAnswer={setRagAnswer}
+                  loading={ragLoading}
+                  setLoading={setRagLoading}
+                  error={ragError}
+                  setError={setRagError}
+                  completedSteps={ragCompletedSteps}
+                  setCompletedSteps={setRagCompletedSteps}
+                  currentStep={ragCurrentStep}
+                  setCurrentStep={setRagCurrentStep}
+                  translationInfo={ragTranslationInfo}
+                  setTranslationInfo={setRagTranslationInfo}
+                />
+              } 
+            />
           </Routes>
         </MainLayout>
       </Router>

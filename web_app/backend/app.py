@@ -37,27 +37,44 @@ def is_pure_english(text):
     return bool(re.match(english_pattern, text))
 
 def translate_with_chatgpt(query):
-    """Translate query using ChatGPT API with cheaper model"""
+    """
+    Analyzes the source query to determine its language and translates it to English.
+    Returns a dictionary containing the translated text and the source language.
+    """
     try:
+        prompt = f"""You are a language analysis and translation expert. Your task is to analyze the following text.
+1. Identify the source language. Distinguish between "English", "Simplified Chinese", and "Traditional Chinese". For other languages, identify them by name (e.g., "Japanese").
+2. Translate the text to English.
+
+Return a single JSON object with two keys: "source_language" and "translated_text".
+
+User Text: "{query}"
+"""
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # Use cheaper model instead of gpt-4o
+            model="gpt-3.5-turbo",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a medical translator. Translate medical queries to English. Keep English terms unchanged, only translate non-English parts. Return only the translated text without explanation."
-                },
-                {
-                    "role": "user",
-                    "content": query
-                }
+                {"role": "system", "content": "You are an assistant that analyzes and translates text, returning the result in a specific JSON format."},
+                {"role": "user", "content": prompt}
             ],
-            max_tokens=100,
-            temperature=0.1
+            max_tokens=200,
+            temperature=0.1,
+            response_format={"type": "json_object"}
         )
-        return response.choices[0].message.content.strip()
+        
+        result = json.loads(response.choices[0].message.content)
+        print(f"Language analysis result: {result}")
+        return {
+            'translated_text': result.get('translated_text', query),
+            'source_language': result.get('source_language', 'English')
+        }
+
     except Exception as e:
-        print(f"Translation error: {str(e)}")
-        return query  # Return original query if translation fails
+        print(f"Translation and language analysis error: {str(e)}")
+        # Fallback in case of error
+        return {
+            'translated_text': query,
+            'source_language': 'English'
+        }
 
 def expand_query_with_gpt(query):
     """Expand the user query into a set of more specific, academic terms using GPT."""
@@ -117,25 +134,30 @@ def build_context_from_articles(articles, max_length=4000):
     
     return "\n".join(context_parts)
 
-def generate_rag_answer(question, context, original_question):
+def generate_rag_answer(question, context, original_question, source_language):
     """Generate answer using RAG approach"""
     try:
-        # Detect if the question is about a specific region by checking the translated question
+        # --- Region Detection ---
         is_taiwan_question = any(keyword in question.lower() for keyword in ['taiwan', 'taiwanese'])
         is_china_question = any(keyword in question.lower() for keyword in ['china', 'chinese'])
-        is_korea_question = any(keyword in question.lower() for keyword in ['korea', 'korean'])
-        
-        # Build region-specific instructions
+        # ... other region checks if needed
+
         region_instruction = ""
         if is_taiwan_question:
             region_instruction = "Focus specifically on Taiwan and the Taiwanese healthcare system. Prioritize Taiwan-specific information. If the provided literature is about other regions (e.g., China), first state that the documents are not about Taiwan, and then you may draw cautious parallels if relevant, but clearly label it as a comparison. Explicitly state if no direct information on Taiwan is found."
         elif is_china_question:
             region_instruction = "Focus specifically on China and the Chinese healthcare system. Prioritize China-specific information."
-        elif is_korea_question:
-            region_instruction = "Focus specifically on Korea and the Korean healthcare system. Prioritize Korea-specific information."
         else:
             region_instruction = "Provide a balanced analysis based on the available literature."
+
+        # --- Language Instruction ---
+        language_instruction = f"Answer in the same language as the original user question ({source_language})."
+        if source_language == "Traditional Chinese":
+            language_instruction = "The user asked in Traditional Chinese. Your entire response MUST be in Traditional Chinese (繁體中文)."
+        elif source_language == "Simplified Chinese":
+            language_instruction = "The user asked in Simplified Chinese. Your entire response MUST be in Simplified Chinese (简体中文)."
         
+        # --- Prompt Construction ---
         prompt = f"""You are a medical research assistant specialized in helping with PubMed medical literature research.
 
 YOUR ROLE AND CAPABILITIES:
@@ -154,6 +176,7 @@ Instructions:
 4.  When citing studies, use proper APA format: (First Author et al., Year; PMID: XXXX).
 5.  Extract the year from the 'pub_date' field for citations.
 6.  If the literature does not contain enough information to answer the question, clearly state this limitation.
+7.  {language_instruction}
 7.  Answer in the same language as the original user question (`{original_question}`).
 8.  Structure your answer logically with clear sections if appropriate.
 
@@ -280,34 +303,35 @@ def search_with_progress():
             original_query = query
             translated_query = query
             
-            # Step 1: Check for Chinese characters
-            yield f"data: {json.dumps({'step': 'Detecting non-English characters in query...', 'progress': 10})}\n\n"
+            # Step 1: Check for non-English characters
+            yield f"data: {json.dumps({'step': 'detect'})}\n\n"
             time.sleep(0.5)  # Small delay for visual effect
             
             # Step 2: Translate if needed
             if not is_pure_english(query):
-                yield f"data: {json.dumps({'step': 'Translating query to English...', 'progress': 20, 'translation_info': f'Original: {original_query}'})}\n\n"
+                yield f"data: {json.dumps({'step': 'translate', 'translation_info': f'Original: {original_query}'})}\n\n"
                 print(f"Original query (contains non-English characters): {query}")
-                translated_query = translate_with_chatgpt(query)
+                translation_result = translate_with_chatgpt(query)
+                translated_query = translation_result['translated_text']
                 print(f"Translated query: {translated_query}")
-                yield f"data: {json.dumps({'step': 'Translation completed', 'progress': 25, 'translation_result': f'Translated: {translated_query}'})}\n\n"
+                yield f"data: {json.dumps({'step': 'translate', 'translation_result': f'Translated: {translated_query}'})}\n\n"
                 time.sleep(0.5)
             else:
-                yield f"data: {json.dumps({'step': 'Query is in English, skipping translation', 'progress': 25})}\n\n"
+                yield f"data: {json.dumps({'step': 'translate'})}\n\n"
                 time.sleep(0.5)
             
             # Step 3: Generate embedding
-            yield f"data: {json.dumps({'step': 'Generating query embedding...', 'progress': 40})}\n\n"
+            yield f"data: {json.dumps({'step': 'embed'})}\n\n"
             query_embedding = model.encode([translated_query])
             time.sleep(0.5)
             
             # Step 4: Search in FAISS
-            yield f"data: {json.dumps({'step': 'Searching in vector database...', 'progress': 60})}\n\n"
+            yield f"data: {json.dumps({'step': 'search'})}\n\n"
             distances, indices = index.search(query_embedding, top_k)
             time.sleep(0.5)
             
             # Step 5: Retrieve article details
-            yield f"data: {json.dumps({'step': 'Retrieving article details...', 'progress': 80})}\n\n"
+            yield f"data: {json.dumps({'step': 'retrieve'})}\n\n"
             results = []
             for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
                 if idx < len(article_ids):
@@ -333,7 +357,7 @@ def search_with_progress():
                         })
             
             # Step 6: Complete
-            yield f"data: {json.dumps({'step': 'Search completed!', 'progress': 100})}\n\n"
+            yield f"data: {json.dumps({'step': 'complete'})}\n\n"
             time.sleep(0.5)
             
             # Final result
@@ -359,43 +383,44 @@ def rag_qa_with_progress():
         try:
             original_question = question
             translated_question = question
+            source_language = 'English'
             
-            # Step 1: Check for Chinese characters
-            yield f"data: {json.dumps({'step': 'Detecting non-English characters in question...', 'progress': 10})}\n\n"
+            # Step 1: Language Analysis
+            yield f"data: {json.dumps({'step': 'detect'})}\n\n"
             time.sleep(0.5)
             
-            # Step 2: Translate if needed
+            # Step 2: Translation
             if not is_pure_english(question):
-                yield f"data: {json.dumps({'step': 'Translating question to English...', 'progress': 20, 'translation_info': f'Original: {original_question}'})}\n\n"
-                print(f"Original question (contains non-English characters): {question}")
-                translated_question = translate_with_chatgpt(question)
-                print(f"Translated question: {translated_question}")
-                yield f"data: {json.dumps({'step': 'Translation completed', 'progress': 25, 'translation_result': f'Translated: {translated_question}'})}\n\n"
+                yield f"data: {json.dumps({'step': 'translate', 'translation_info': f'Original: {original_question}'})}\n\n"
+                translation_result = translate_with_chatgpt(question)
+                translated_question = translation_result['translated_text']
+                source_language = translation_result['source_language']
+                
+                yield f"data: {json.dumps({'step': 'translate', 'translation_result': f'Translated: {translated_question}'})}\n\n"
                 time.sleep(0.5)
             else:
-                yield f"data: {json.dumps({'step': 'Question is in English, skipping translation', 'progress': 25})}\n\n"
+                yield f"data: {json.dumps({'step': 'translate'})}\n\n"
                 time.sleep(0.5)
-            
-            # New Step: Query Expansion
-            yield f"data: {json.dumps({'step': 'Expanding query for better search...', 'progress': 30})}\n\n"
+
+            # Step 3: Query Expansion
+            yield f"data: {json.dumps({'step': 'embed'})}\n\n"
             expanded_queries = expand_query_with_gpt(translated_question)
             all_queries_for_embedding = [translated_question] + expanded_queries
             time.sleep(0.5)
             
-            # Step 3: Generate embedding (now using multiple queries)
-            yield f"data: {json.dumps({'step': 'Generating query embeddings...', 'progress': 40})}\n\n"
+            # Step 4: Generate embedding (now using multiple queries)
             embeddings = model.encode(all_queries_for_embedding)
             # Average the embeddings to create a single, more robust query vector
             avg_embedding = np.mean(embeddings, axis=0, keepdims=True)
             time.sleep(0.5)
             
-            # Step 4: Search for relevant articles
-            yield f"data: {json.dumps({'step': 'Searching for relevant articles...', 'progress': 50})}\n\n"
+            # Step 5: Search for relevant articles
+            yield f"data: {json.dumps({'step': 'search'})}\n\n"
             distances, indices = index.search(avg_embedding, top_k)
             time.sleep(0.5)
             
-            # Step 5: Retrieve article details
-            yield f"data: {json.dumps({'step': 'Retrieving article details...', 'progress': 70})}\n\n"
+            # Step 6: Retrieve article details
+            yield f"data: {json.dumps({'step': 'retrieve'})}\n\n"
             relevant_articles = []
             for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
                 if idx < len(article_ids):
@@ -420,18 +445,18 @@ def rag_qa_with_progress():
                             'similarity_score': float(1 - distance)
                         })
             
-            # Step 6: Build context
-            yield f"data: {json.dumps({'step': 'Building context from articles...', 'progress': 80})}\n\n"
+            # Step 7: Build context
+            yield f"data: {json.dumps({'step': 'context'})}\n\n"
             context = build_context_from_articles(relevant_articles)
             time.sleep(0.5)
             
-            # Step 7: Generate AI answer
-            yield f"data: {json.dumps({'step': 'Generating AI answer...', 'progress': 90})}\n\n"
-            answer = generate_rag_answer(translated_question, context, original_question)
+            # Step 8: Generate AI answer
+            yield f"data: {json.dumps({'step': 'generate'})}\n\n"
+            answer = generate_rag_answer(translated_question, context, original_question, source_language)
             time.sleep(0.5)
             
-            # Step 8: Complete
-            yield f"data: {json.dumps({'step': 'RAG analysis completed!', 'progress': 100})}\n\n"
+            # Step 9: Complete
+            yield f"data: {json.dumps({'step': 'complete'})}\n\n"
             time.sleep(0.5)
             
             # Final result
@@ -497,7 +522,7 @@ def rag_question_answer():
         context = build_context_from_articles(relevant_articles)
         
         # Generate answer using RAG
-        answer = generate_rag_answer(translated_question, context, original_question)
+        answer = generate_rag_answer(translated_question, context, original_question, 'English')
         
         return jsonify({
             'original_question': original_question,

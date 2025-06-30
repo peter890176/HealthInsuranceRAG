@@ -1,24 +1,30 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Container, Typography, TextField, Button, Box, CircularProgress, Paper, List, Alert } from '@mui/material';
-import TimelineProgress from '../components/TimelineProgress'; // We'll create this
-import ArticleCard from '../components/ArticleCard'; // We'll create this
-import RagAnswer from '../components/RagAnswer'; // We'll create this
+import TimelineProgress from '../components/TimelineProgress';
+import ArticleCard from '../components/ArticleCard';
+import RagAnswer from '../components/RagAnswer';
 
-const RagQaPage = () => {
-  const [question, setQuestion] = useState('');
-  const [ragAnswer, setRagAnswer] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // State for progress timeline
-  const [completedSteps, setCompletedSteps] = useState([]);
-  const [currentStep, setCurrentStep] = useState('');
-  const [translationStepInfo, setTranslationStepInfo] = useState(null);
+const RagQaPage = ({
+  question,
+  setQuestion,
+  answer,
+  setAnswer,
+  loading,
+  setLoading,
+  error,
+  setError,
+  completedSteps,
+  setCompletedSteps,
+  currentStep,
+  setCurrentStep,
+  translationInfo,
+  setTranslationInfo
+}) => {
 
   const ragSteps = [
     { id: 'detect', label: 'Detecting non-English characters' },
     { id: 'translate', label: 'Translating to English' },
-    { id: 'embed', label: 'Generating embedding' },
+    { id: 'embed', label: 'Generating embeddings' },
     { id: 'search', label: 'Searching relevant articles' },
     { id: 'retrieve', label: 'Retrieving articles' },
     { id: 'context', label: 'Building context' },
@@ -29,10 +35,10 @@ const RagQaPage = () => {
   const handleRagQuestion = async () => {
     setLoading(true);
     setError('');
-    setRagAnswer(null);
+    setAnswer(null);
     setCurrentStep('');
     setCompletedSteps([]);
-    setTranslationStepInfo(null);
+    setTranslationInfo(null);
 
     try {
       const response = await fetch('http://localhost:5000/api/rag_qa_with_progress', {
@@ -69,15 +75,15 @@ const RagQaPage = () => {
                 }
                 
                 if (data.translation_info) {
-                  setTranslationStepInfo({ original: data.translation_info.replace('Original: ', ''), step: data.step });
+                  setTranslationInfo({ original: data.translation_info.replace('Original: ', ''), step: data.step });
                 }
                 if (data.translation_result) {
-                  setTranslationStepInfo(prev => ({ ...prev, translated: data.translation_result.replace('Translated: ', ''), step: data.step }));
+                  setTranslationInfo(prev => ({ ...prev, translated: data.translation_result.replace('Translated: ', ''), step: data.step }));
                 }
               }
 
               if (data.complete) {
-                setRagAnswer(data);
+                setAnswer(data);
                 setLoading(false);
                 return;
               }
@@ -124,18 +130,18 @@ const RagQaPage = () => {
             completedSteps={completedSteps}
             currentStep={currentStep}
             isLoading={loading}
-            translationInfo={translationStepInfo}
+            translationInfo={translationInfo}
         />
       )}
 
-      {ragAnswer && (
+      {answer && (
         <Box sx={{ mt: 4 }}>
-          <RagAnswer answer={ragAnswer.answer} />
+          <RagAnswer answer={answer.answer} />
           <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
-            Supporting Articles ({ragAnswer.relevant_articles.length})
+            Supporting Articles ({answer.relevant_articles.length})
           </Typography>
           <List>
-            {ragAnswer.relevant_articles.map((item) => (
+            {answer.relevant_articles.map((item) => (
               <ArticleCard key={item.pmid} article={item} />
             ))}
           </List>

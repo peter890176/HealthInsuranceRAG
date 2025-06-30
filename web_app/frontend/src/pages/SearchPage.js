@@ -1,19 +1,26 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Container, Typography, TextField, Button, Box, CircularProgress, List, Paper, Chip, Alert } from '@mui/material';
-import TimelineProgress from '../components/TimelineProgress'; // We'll create this
-import ArticleCard from '../components/ArticleCard'; // We'll create this
+import TimelineProgress from '../components/TimelineProgress';
+import ArticleCard from '../components/ArticleCard';
 
-const SearchPage = () => {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [topK, setTopK] = useState(10);
-  
-  // State for progress timeline
-  const [completedSteps, setCompletedSteps] = useState([]);
-  const [currentStep, setCurrentStep] = useState('');
-  const [translationStepInfo, setTranslationStepInfo] = useState(null);
+const SearchPage = ({
+  query,
+  setQuery,
+  results,
+  setResults,
+  loading,
+  setLoading,
+  error,
+  setError,
+  topK,
+  setTopK,
+  completedSteps,
+  setCompletedSteps,
+  currentStep,
+  setCurrentStep,
+  translationInfo,
+  setTranslationInfo
+}) => {
   
   const searchSteps = [
     { id: 'detect', label: 'Detecting non-English characters' },
@@ -30,7 +37,7 @@ const SearchPage = () => {
     setResults([]);
     setCurrentStep('');
     setCompletedSteps([]);
-    setTranslationStepInfo(null);
+    setTranslationInfo(null);
     
     try {
       const response = await fetch('http://localhost:5000/api/search_with_progress', {
@@ -67,10 +74,10 @@ const SearchPage = () => {
                 }
                 
                 if (data.translation_info) {
-                  setTranslationStepInfo({ original: data.translation_info.replace('Original: ', ''), step: data.step });
+                  setTranslationInfo({ original: data.translation_info.replace('Original: ', ''), step: data.step });
                 }
                 if (data.translation_result) {
-                  setTranslationStepInfo(prev => ({ ...prev, translated: data.translation_result.replace('Translated: ', ''), step: data.step }));
+                  setTranslationInfo(prev => ({ ...prev, translated: data.translation_result.replace('Translated: ', ''), step: data.step }));
                 }
               }
               
@@ -129,7 +136,7 @@ const SearchPage = () => {
           completedSteps={completedSteps}
           currentStep={currentStep}
           isLoading={loading}
-          translationInfo={translationStepInfo}
+          translationInfo={translationInfo}
         />
       )}
       
