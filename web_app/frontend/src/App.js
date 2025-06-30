@@ -323,6 +323,53 @@ function App() {
             </Button>
           </Box>
           
+          {/* Timeline Flow Chart - Moved here */}
+          {(loading || completedSteps.length > 0) && (
+            <Box sx={{ mb: 3 }}>
+              <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
+                {/* Debug Information */}
+                <Box sx={{ mb: 2, p: 1, bgcolor: 'yellow.100', borderRadius: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Debug Info: loading={loading.toString()}, completedSteps.length={completedSteps.length}, currentStep="{currentStep}"
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Completed Steps: {completedSteps.join(', ')}
+                  </Typography>
+                </Box>
+                
+                <Typography variant="h6" gutterBottom align="center">
+                  {loading ? 'Processing Timeline' : 'Processing Completed'}
+                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  overflowX: 'auto',
+                  py: 2,
+                  px: 1
+                }}>
+                  {getCurrentSteps().map((step, index) => (
+                    <TimelineStep 
+                      key={step.id}
+                      step={step} 
+                      status={getStepStatus(step)}
+                      isLast={index === getCurrentSteps().length - 1}
+                    />
+                  ))}
+                </Box>
+                {currentStep && loading && (
+                  <Typography variant="body2" align="center" color="primary.main" sx={{ mt: 2 }}>
+                    Current: {currentStep}
+                  </Typography>
+                )}
+                {!loading && completedSteps.length > 0 && (
+                  <Typography variant="body2" align="center" color="success.main" sx={{ mt: 2 }}>
+                    ✅ All steps completed successfully!
+                  </Typography>
+                )}
+              </Paper>
+            </Box>
+          )}
+          
           {translationInfo && (
             <Paper sx={{ p: 2, mb: 2, bgcolor: 'info.light' }}>
               <Typography variant="h6" gutterBottom>
@@ -389,6 +436,53 @@ function App() {
             </Button>
           </Box>
           
+          {/* Timeline Flow Chart - Moved here for RAG */}
+          {(loading || completedSteps.length > 0) && (
+            <Box sx={{ mb: 3 }}>
+              <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
+                {/* Debug Information */}
+                <Box sx={{ mb: 2, p: 1, bgcolor: 'yellow.100', borderRadius: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Debug Info: loading={loading.toString()}, completedSteps.length={completedSteps.length}, currentStep="{currentStep}"
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Completed Steps: {completedSteps.join(', ')}
+                  </Typography>
+                </Box>
+                
+                <Typography variant="h6" gutterBottom align="center">
+                  {loading ? 'Processing Timeline' : 'Processing Completed'}
+                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  overflowX: 'auto',
+                  py: 2,
+                  px: 1
+                }}>
+                  {getCurrentSteps().map((step, index) => (
+                    <TimelineStep 
+                      key={step.id}
+                      step={step} 
+                      status={getStepStatus(step)}
+                      isLast={index === getCurrentSteps().length - 1}
+                    />
+                  ))}
+                </Box>
+                {currentStep && loading && (
+                  <Typography variant="body2" align="center" color="primary.main" sx={{ mt: 2 }}>
+                    Current: {currentStep}
+                  </Typography>
+                )}
+                {!loading && completedSteps.length > 0 && (
+                  <Typography variant="body2" align="center" color="success.main" sx={{ mt: 2 }}>
+                    ✅ All steps completed successfully!
+                  </Typography>
+                )}
+              </Paper>
+            </Box>
+          )}
+          
           {ragAnswer && (
             <Box>
               <Paper sx={{ p: 3, mb: 3, bgcolor: 'success.light' }}>
@@ -434,38 +528,6 @@ function App() {
               </List>
             </Box>
           )}
-        </Box>
-      )}
-      
-      {/* Timeline Flow Chart */}
-      {loading && (
-        <Box sx={{ mt: 3, mb: 3 }}>
-          <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
-            <Typography variant="h6" gutterBottom align="center">
-              Processing Timeline
-            </Typography>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center',
-              overflowX: 'auto',
-              py: 2,
-              px: 1
-            }}>
-              {getCurrentSteps().map((step, index) => (
-                <TimelineStep 
-                  key={step.id}
-                  step={step} 
-                  status={getStepStatus(step)}
-                  isLast={index === getCurrentSteps().length - 1}
-                />
-              ))}
-            </Box>
-            {currentStep && (
-              <Typography variant="body2" align="center" color="primary.main" sx={{ mt: 2 }}>
-                Current: {currentStep}
-              </Typography>
-            )}
-          </Paper>
         </Box>
       )}
       
