@@ -23,9 +23,22 @@ const ArticleCard = ({ article }) => {
     }
   };
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log(`ArticleCard rendered with rank: ${article.rank}, pmid: ${article.pmid}`);
+  }, [article.rank, article.pmid]);
+
   return (
     <ListItem sx={{ display: 'block', p: 0, mb: 2 }}>
-      <Paper sx={{ p: 2.5, ':hover': { boxShadow: 4 }, transition: 'box-shadow 0.3s' }}>
+      <Paper 
+        id={`article-${article.rank}`}
+        sx={{ 
+          p: 2.5, 
+          ':hover': { boxShadow: 4 }, 
+          transition: 'box-shadow 0.3s',
+          scrollMarginTop: '20px' // Ensure proper margin when scrolling
+        }}
+      >
         <Box onClick={handleExpandClick} sx={{ cursor: 'pointer' }}>
           <Typography variant="h6" component="h3" sx={{ mb: 1 }}>
             {article.title || 'No Title Available'}

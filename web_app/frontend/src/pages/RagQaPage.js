@@ -137,7 +137,7 @@ const RagQaPage = ({
 
       {answer && (
         <Box sx={{ mt: 4 }}>
-          <RagAnswer answer={answer.answer} />
+          <RagAnswer answer={answer.answer} relevantArticles={answer.relevant_articles} />
           <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
             Supporting Articles ({answer.relevant_articles.length})
           </Typography>

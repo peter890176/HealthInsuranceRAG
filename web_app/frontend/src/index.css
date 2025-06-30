@@ -11,3 +11,28 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* PMID link styles */
+.pmid-link {
+  color: #1976d2 !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+  font-weight: bold !important;
+  transition: all 0.2s ease !important;
+}
+
+.pmid-link:hover {
+  color: #1565c0 !important;
+  text-decoration: none !important;
+}
+
+/* Article card highlight effect */
+.article-highlight {
+  animation: highlight-pulse 2s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+  0% { background-color: #fff3cd; }
+  50% { background-color: #ffeaa7; }
+  100% { background-color: transparent; }
+}
