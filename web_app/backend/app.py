@@ -30,19 +30,21 @@ articles_data = None
 # OpenAI API configuration
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-def contains_chinese(text):
-    """Check if text contains Chinese characters"""
-    return bool(re.search(r'[\u4e00-\u9fff]', text))
+def is_pure_english(text):
+    """Check if text contains only English characters, numbers, and common punctuation"""
+    # Allow English letters, numbers, spaces, and common punctuation
+    english_pattern = r'^[a-zA-Z0-9\s\.,;:!?\-\(\)\[\]\{\}\'\"/\\@#$%^&*+=<>~`|]+$'
+    return bool(re.match(english_pattern, text))
 
 def translate_with_chatgpt(query):
-    """Translate query using ChatGPT API"""
+    """Translate query using ChatGPT API with cheaper model"""
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-3.5-turbo",  # Use cheaper model instead of gpt-4o
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a medical translator. Translate mixed Chinese-English medical queries to English. Keep English terms unchanged, only translate Chinese parts. Return only the translated text without explanation."
+                    "content": "You are a medical translator. Translate medical queries to English. Keep English terms unchanged, only translate non-English parts. Return only the translated text without explanation."
                 },
                 {
                     "role": "user",
@@ -120,11 +122,17 @@ Instructions:
 2. If the question is about academic writing, literature review, or research methodology related to medical topics, provide appropriate assistance
 3. If it's a specific medical research question, answer based on the provided literature
 4. {region_instruction}
-5. Cite specific PMIDs when referencing information from the literature
-6. If the literature doesn't contain enough information about the specific region/country asked, clearly state this limitation
-7. Be helpful and informative while staying within medical research scope
-8. If the question is in Chinese, answer in Chinese; if in English, answer in English
-9. Structure your answer logically with clear sections if appropriate
+5. Provide comprehensive answers that include key findings, methodologies, and conclusions from the literature
+6. When citing studies, use proper APA format:
+   - For in-text citations: (First Author et al., Year) or First Author et al. (Year) found that...
+   - For multiple authors: (Author1, Author2, & Author3, Year)
+   - Include PMID in parentheses: (Author et al., Year; PMID: XXXX)
+7. Extract the year from the Publication Date field for citations
+8. If the literature doesn't contain enough information about the specific region/country asked, clearly state this limitation
+9. Be helpful and informative while staying within medical research scope
+10. If the question is in Chinese, answer in Chinese; if in English, answer in English
+11. Structure your answer logically with clear sections if appropriate
+12. Include relevant statistics, trends, and important details from the studies
 
 Answer:"""
 
@@ -140,7 +148,7 @@ Answer:"""
                     "content": prompt
                 }
             ],
-            max_tokens=800,
+            max_tokens=1200,
             temperature=0.3
         )
         return response.choices[0].message.content.strip()
@@ -186,8 +194,8 @@ def search():
         translated_query = query
         
         # Check if query contains Chinese characters
-        if contains_chinese(query):
-            print(f"Original query (contains Chinese): {query}")
+        if not is_pure_english(query):
+            print(f"Original query (contains non-English characters): {query}")
             translated_query = translate_with_chatgpt(query)
             print(f"Translated query: {translated_query}")
         
@@ -250,15 +258,19 @@ def search_with_progress():
             translated_query = query
             
             # Step 1: Check for Chinese characters
-            yield f"data: {json.dumps({'step': 'Detecting Chinese characters in query...', 'progress': 10})}\n\n"
+            yield f"data: {json.dumps({'step': 'Detecting non-English characters in query...', 'progress': 10})}\n\n"
             time.sleep(0.5)  # Small delay for visual effect
             
             # Step 2: Translate if needed
-            if contains_chinese(query):
-                yield f"data: {json.dumps({'step': 'Translating query to English...', 'progress': 20})}\n\n"
-                print(f"Original query (contains Chinese): {query}")
+            if not is_pure_english(query):
+                yield f"data: {json.dumps({'step': 'Translating query to English...', 'progress': 20, 'translation_info': f'Original: {original_query}'})}\n\n"
+                print(f"Original query (contains non-English characters): {query}")
                 translated_query = translate_with_chatgpt(query)
                 print(f"Translated query: {translated_query}")
+                yield f"data: {json.dumps({'step': 'Translation completed', 'progress': 25, 'translation_result': f'Translated: {translated_query}'})}\n\n"
+                time.sleep(0.5)
+            else:
+                yield f"data: {json.dumps({'step': 'Query is in English, skipping translation', 'progress': 25})}\n\n"
                 time.sleep(0.5)
             
             # Step 3: Generate embedding
@@ -315,7 +327,7 @@ def rag_qa_with_progress():
     # Get request data outside of the generator
     data = request.get_json()
     question = data.get('question', '')
-    top_k = data.get('top_k', 8)
+    top_k = data.get('top_k', 12)  # Increased from 8 to 12 for more comprehensive answers
     
     if not question:
         return jsonify({'error': 'Question is required'}), 400
@@ -326,15 +338,19 @@ def rag_qa_with_progress():
             translated_question = question
             
             # Step 1: Check for Chinese characters
-            yield f"data: {json.dumps({'step': 'Detecting Chinese characters in question...', 'progress': 10})}\n\n"
+            yield f"data: {json.dumps({'step': 'Detecting non-English characters in question...', 'progress': 10})}\n\n"
             time.sleep(0.5)
             
             # Step 2: Translate if needed
-            if contains_chinese(question):
-                yield f"data: {json.dumps({'step': 'Translating question to English...', 'progress': 20})}\n\n"
-                print(f"Original question (contains Chinese): {question}")
+            if not is_pure_english(question):
+                yield f"data: {json.dumps({'step': 'Translating question to English...', 'progress': 20, 'translation_info': f'Original: {original_question}'})}\n\n"
+                print(f"Original question (contains non-English characters): {question}")
                 translated_question = translate_with_chatgpt(question)
                 print(f"Translated question: {translated_question}")
+                yield f"data: {json.dumps({'step': 'Translation completed', 'progress': 25, 'translation_result': f'Translated: {translated_question}'})}\n\n"
+                time.sleep(0.5)
+            else:
+                yield f"data: {json.dumps({'step': 'Question is in English, skipping translation', 'progress': 25})}\n\n"
                 time.sleep(0.5)
             
             # Step 3: Generate embedding
@@ -401,7 +417,7 @@ def rag_question_answer():
     try:
         data = request.get_json()
         question = data.get('question', '')
-        top_k = data.get('top_k', 8)  # Default to 8 articles for RAG
+        top_k = data.get('top_k', 12)  # Default to 12 articles for RAG (increased from 8)
         
         if not question:
             return jsonify({'error': 'Question is required'}), 400
@@ -410,8 +426,8 @@ def rag_question_answer():
         translated_question = question
         
         # Check if question contains Chinese characters
-        if contains_chinese(question):
-            print(f"Original question (contains Chinese): {question}")
+        if not is_pure_english(question):
+            print(f"Original question (contains non-English characters): {question}")
             translated_question = translate_with_chatgpt(question)
             print(f"Translated question: {translated_question}")
         
@@ -474,18 +490,18 @@ def translate():
         if not query:
             return jsonify({'error': 'Query is required'}), 400
         
-        if contains_chinese(query):
+        if not is_pure_english(query):
             translated = translate_with_chatgpt(query)
             return jsonify({
                 'original': query,
                 'translated': translated,
-                'contains_chinese': True
+                'is_pure_english': False
             })
         else:
             return jsonify({
                 'original': query,
                 'translated': query,
-                'contains_chinese': False
+                'is_pure_english': True
             })
             
     except Exception as e:

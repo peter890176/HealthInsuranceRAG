@@ -16,10 +16,11 @@ function App() {
   const [currentStep, setCurrentStep] = useState('');
   const [progress, setProgress] = useState(0);
   const [completedSteps, setCompletedSteps] = useState([]);
+  const [translationStepInfo, setTranslationStepInfo] = useState(null);
 
   // Define step configurations
   const searchSteps = [
-    { id: 'detect', label: 'Detecting Chinese characters in query...', progress: 10 },
+    { id: 'detect', label: 'Detecting non-English characters in query...', progress: 10 },
     { id: 'translate', label: 'Translating query to English...', progress: 20 },
     { id: 'embed', label: 'Generating query embedding...', progress: 40 },
     { id: 'search', label: 'Searching in vector database...', progress: 60 },
@@ -28,7 +29,7 @@ function App() {
   ];
 
   const ragSteps = [
-    { id: 'detect', label: 'Detecting Chinese characters in question...', progress: 10 },
+    { id: 'detect', label: 'Detecting non-English characters in question...', progress: 10 },
     { id: 'translate', label: 'Translating question to English...', progress: 20 },
     { id: 'embed', label: 'Generating question embedding...', progress: 30 },
     { id: 'search', label: 'Searching for relevant articles...', progress: 50 },
@@ -69,6 +70,7 @@ function App() {
     setError('');
     setResults([]);
     setTranslationInfo(null);
+    setTranslationStepInfo(null);
     setCurrentStep('');
     setProgress(0);
     setCompletedSteps([]);
@@ -110,6 +112,21 @@ function App() {
                 setCurrentStep(data.step);
                 setProgress(data.progress);
                 setCompletedSteps(prev => [...prev, data.step]);
+                
+                // Handle translation step information
+                if (data.translation_info) {
+                  setTranslationStepInfo({
+                    original: data.translation_info.replace('Original: ', ''),
+                    step: data.step
+                  });
+                }
+                if (data.translation_result) {
+                  setTranslationStepInfo(prev => ({
+                    ...prev,
+                    translated: data.translation_result.replace('Translated: ', ''),
+                    step: data.step
+                  }));
+                }
               }
               
               if (data.complete) {
@@ -142,6 +159,7 @@ function App() {
     setLoading(true);
     setError('');
     setRagAnswer(null);
+    setTranslationStepInfo(null);
     setCurrentStep('');
     setProgress(0);
     setCompletedSteps([]);
@@ -183,6 +201,21 @@ function App() {
                 setCurrentStep(data.step);
                 setProgress(data.progress);
                 setCompletedSteps(prev => [...prev, data.step]);
+                
+                // Handle translation step information
+                if (data.translation_info) {
+                  setTranslationStepInfo({
+                    original: data.translation_info.replace('Original: ', ''),
+                    step: data.step
+                  });
+                }
+                if (data.translation_result) {
+                  setTranslationStepInfo(prev => ({
+                    ...prev,
+                    translated: data.translation_result.replace('Translated: ', ''),
+                    step: data.step
+                  }));
+                }
               }
               
               if (data.complete) {
@@ -210,6 +243,7 @@ function App() {
     setCurrentStep('');
     setProgress(0);
     setCompletedSteps([]);
+    setTranslationStepInfo(null);
   };
 
   const TimelineStep = ({ step, status, isLast }) => {
@@ -239,6 +273,10 @@ function App() {
     const getDisplayName = (label) => {
       return label.replace(/\.\.\.$/, '').replace(/!$/, '');
     };
+
+    // Check if this step has translation info
+    const hasTranslationInfo = translationStepInfo && 
+      (step.label.includes('Translating') || step.label.includes('Translation completed') || step.label.includes('skipping translation'));
 
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
@@ -270,6 +308,35 @@ function App() {
           >
             {getDisplayName(step.label)}
           </Typography>
+          
+          {/* Show translation info if this step has it */}
+          {hasTranslationInfo && translationStepInfo && (
+            <Box sx={{ 
+              mt: 1, 
+              p: 1, 
+              bgcolor: 'info.50', 
+              borderRadius: 1, 
+              border: '1px solid',
+              borderColor: 'info.200',
+              maxWidth: 150,
+              fontSize: '0.6rem'
+            }}>
+              {translationStepInfo.original && (
+                <Typography variant="caption" display="block" color="text.secondary">
+                  <strong>Original:</strong> {translationStepInfo.original.length > 20 ? 
+                    translationStepInfo.original.substring(0, 20) + '...' : 
+                    translationStepInfo.original}
+                </Typography>
+              )}
+              {translationStepInfo.translated && (
+                <Typography variant="caption" display="block" color="primary.main">
+                  <strong>Translated:</strong> {translationStepInfo.translated.length > 20 ? 
+                    translationStepInfo.translated.substring(0, 20) + '...' : 
+                    translationStepInfo.translated}
+                </Typography>
+              )}
+            </Box>
+          )}
         </Box>
         {!isLast && (
           <Box sx={{ 
@@ -327,16 +394,6 @@ function App() {
           {(loading || completedSteps.length > 0) && (
             <Box sx={{ mb: 3 }}>
               <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
-                {/* Debug Information */}
-                <Box sx={{ mb: 2, p: 1, bgcolor: 'yellow.100', borderRadius: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Debug Info: loading={loading.toString()}, completedSteps.length={completedSteps.length}, currentStep="{currentStep}"
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Completed Steps: {completedSteps.join(', ')}
-                  </Typography>
-                </Box>
-                
                 <Typography variant="h6" gutterBottom align="center">
                   {loading ? 'Processing Timeline' : 'Processing Completed'}
                 </Typography>
@@ -366,24 +423,25 @@ function App() {
                     ✅ All steps completed successfully!
                   </Typography>
                 )}
+                
+                {/* Show detailed translation info after completion */}
+                {!loading && translationStepInfo && translationStepInfo.translated && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
+                    <Typography variant="subtitle2" gutterBottom color="info.main">
+                      Translation Details
+                    </Typography>
+                    <Box display="flex" flexDirection="column" gap={1}>
+                      <Typography variant="body2">
+                        <strong>Original:</strong> {translationStepInfo.original}
+                      </Typography>
+                      <Typography variant="body2" color="primary.main">
+                        <strong>Translated:</strong> {translationStepInfo.translated}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
               </Paper>
             </Box>
-          )}
-          
-          {translationInfo && (
-            <Paper sx={{ p: 2, mb: 2, bgcolor: 'info.light' }}>
-              <Typography variant="h6" gutterBottom>
-                Translation Information
-              </Typography>
-              <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
-                <Typography variant="body2">
-                  <strong>Original:</strong> {translationInfo.original}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Translated:</strong> {translationInfo.translated}
-                </Typography>
-              </Box>
-            </Paper>
           )}
           
           {results.length > 0 && (
@@ -440,16 +498,6 @@ function App() {
           {(loading || completedSteps.length > 0) && (
             <Box sx={{ mb: 3 }}>
               <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
-                {/* Debug Information */}
-                <Box sx={{ mb: 2, p: 1, bgcolor: 'yellow.100', borderRadius: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Debug Info: loading={loading.toString()}, completedSteps.length={completedSteps.length}, currentStep="{currentStep}"
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Completed Steps: {completedSteps.join(', ')}
-                  </Typography>
-                </Box>
-                
                 <Typography variant="h6" gutterBottom align="center">
                   {loading ? 'Processing Timeline' : 'Processing Completed'}
                 </Typography>
@@ -478,6 +526,23 @@ function App() {
                   <Typography variant="body2" align="center" color="success.main" sx={{ mt: 2 }}>
                     ✅ All steps completed successfully!
                   </Typography>
+                )}
+                
+                {/* Show detailed translation info after completion */}
+                {!loading && translationStepInfo && translationStepInfo.translated && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
+                    <Typography variant="subtitle2" gutterBottom color="info.main">
+                      Translation Details
+                    </Typography>
+                    <Box display="flex" flexDirection="column" gap={1}>
+                      <Typography variant="body2">
+                        <strong>Original:</strong> {translationStepInfo.original}
+                      </Typography>
+                      <Typography variant="body2" color="primary.main">
+                        <strong>Translated:</strong> {translationStepInfo.translated}
+                      </Typography>
+                    </Box>
+                  </Box>
                 )}
               </Paper>
             </Box>
