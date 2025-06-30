@@ -59,6 +59,40 @@ def translate_with_chatgpt(query):
         print(f"Translation error: {str(e)}")
         return query  # Return original query if translation fails
 
+def expand_query_with_gpt(query):
+    """Expand the user query into a set of more specific, academic terms using GPT."""
+    try:
+        prompt = f"""You are a biomedical research query analyst. Your task is to expand a user's query into a set of 3 to 5 semantically related, specific search terms that are likely to appear in PubMed abstracts. Focus on academic and technical vocabulary.
+
+Return the result as a JSON array of strings. Only return the JSON array, nothing else.
+
+User Query: "{query}"
+"""
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that provides expanded search terms in a JSON array format."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=200,
+            temperature=0.2,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        # The model might return a dictionary with a key, e.g., {"queries": [...]}. We need to find the list.
+        for value in result.values():
+            if isinstance(value, list):
+                print(f"Expanded query to: {value}")
+                return value
+        
+        # If no list is found, return the original query
+        return [query]
+
+    except Exception as e:
+        print(f"Query expansion error: {str(e)}")
+        return [query] # Return original query in a list if expansion fails
+
 def build_context_from_articles(articles, max_length=4000):
     """Build context string from retrieved articles"""
     context_parts = []
@@ -86,31 +120,27 @@ def build_context_from_articles(articles, max_length=4000):
 def generate_rag_answer(question, context, original_question):
     """Generate answer using RAG approach"""
     try:
-        # Detect if the question is about a specific region
-        is_taiwan_question = any(keyword in original_question.lower() for keyword in ['台灣', 'taiwan', 'taiwanese'])
-        is_china_question = any(keyword in original_question.lower() for keyword in ['中國', 'china', 'chinese'])
-        is_korea_question = any(keyword in original_question.lower() for keyword in ['韓國', 'korea', 'korean'])
+        # Detect if the question is about a specific region by checking the translated question
+        is_taiwan_question = any(keyword in question.lower() for keyword in ['taiwan', 'taiwanese'])
+        is_china_question = any(keyword in question.lower() for keyword in ['china', 'chinese'])
+        is_korea_question = any(keyword in question.lower() for keyword in ['korea', 'korean'])
         
         # Build region-specific instructions
         region_instruction = ""
         if is_taiwan_question:
-            region_instruction = "Focus specifically on Taiwan and Taiwanese healthcare system. Prioritize Taiwan-specific information and minimize discussion of other countries unless directly relevant to Taiwan's context."
+            region_instruction = "Focus specifically on Taiwan and the Taiwanese healthcare system. Prioritize Taiwan-specific information. If the provided literature is about other regions (e.g., China), first state that the documents are not about Taiwan, and then you may draw cautious parallels if relevant, but clearly label it as a comparison. Explicitly state if no direct information on Taiwan is found."
         elif is_china_question:
-            region_instruction = "Focus specifically on China and Chinese healthcare system. Prioritize China-specific information and minimize discussion of other countries unless directly relevant to China's context."
+            region_instruction = "Focus specifically on China and the Chinese healthcare system. Prioritize China-specific information."
         elif is_korea_question:
-            region_instruction = "Focus specifically on Korea and Korean healthcare system. Prioritize Korea-specific information and minimize discussion of other countries unless directly relevant to Korea's context."
+            region_instruction = "Focus specifically on Korea and the Korean healthcare system. Prioritize Korea-specific information."
         else:
             region_instruction = "Provide a balanced analysis based on the available literature."
         
         prompt = f"""You are a medical research assistant specialized in helping with PubMed medical literature research.
 
 YOUR ROLE AND CAPABILITIES:
-- You can answer questions about medical research, healthcare systems, diseases, treatments, and health policy based on PubMed literature
-- You can provide guidance on how to use this system for medical research
-- You can suggest types of medical questions that would be helpful for research
-- You can help with academic writing and literature review related to medical topics
-- You CANNOT provide personal medical advice, diagnosis, or treatment recommendations
-- You CANNOT answer questions completely unrelated to medical research or healthcare
+- You can answer questions about medical research, healthcare systems, diseases, treatments, and health policy based on PubMed literature.
+- You CANNOT provide personal medical advice, diagnosis, or treatment recommendations.
 
 Question: {original_question}
 
@@ -118,21 +148,14 @@ Relevant Medical Literature:
 {context}
 
 Instructions:
-1. If the question is about how to use this system or what types of questions to ask, provide helpful guidance about medical research topics
-2. If the question is about academic writing, literature review, or research methodology related to medical topics, provide appropriate assistance
-3. If it's a specific medical research question, answer based on the provided literature
-4. {region_instruction}
-5. Provide comprehensive answers that include key findings, methodologies, and conclusions from the literature
-6. When citing studies, use proper APA format:
-   - For in-text citations: (First Author et al., Year) or First Author et al. (Year) found that...
-   - For multiple authors: (Author1, Author2, & Author3, Year)
-   - Include PMID in parentheses: (Author et al., Year; PMID: XXXX)
-7. Extract the year from the Publication Date field for citations
-8. If the literature doesn't contain enough information about the specific region/country asked, clearly state this limitation
-9. Be helpful and informative while staying within medical research scope
-10. If the question is in Chinese, answer in Chinese; if in English, answer in English
-11. Structure your answer logically with clear sections if appropriate
-12. Include relevant statistics, trends, and important details from the studies
+1.  Answer based *only* on the provided "Relevant Medical Literature". Do not use outside knowledge.
+2.  {region_instruction}
+3.  Provide a comprehensive answer that includes key findings, methodologies, and conclusions from the literature.
+4.  When citing studies, use proper APA format: (First Author et al., Year; PMID: XXXX).
+5.  Extract the year from the 'pub_date' field for citations.
+6.  If the literature does not contain enough information to answer the question, clearly state this limitation.
+7.  Answer in the same language as the original user question (`{original_question}`).
+8.  Structure your answer logically with clear sections if appropriate.
 
 Answer:"""
 
@@ -141,15 +164,15 @@ Answer:"""
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a medical research assistant. You help with PubMed literature research, academic writing, and medical research guidance. You can answer questions about medical topics and provide guidance on using the system for research purposes. Always focus on the specific region or country mentioned in the question."
+                    "content": "You are a medical research assistant. You help with PubMed literature research by answering questions based *only* on the provided literature. You must adhere to the user's instructions, especially regarding region-specific focus and citation format."
                 },
                 {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            max_tokens=1200,
-            temperature=0.3
+            max_tokens=1500,
+            temperature=0.2
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -353,14 +376,22 @@ def rag_qa_with_progress():
                 yield f"data: {json.dumps({'step': 'Question is in English, skipping translation', 'progress': 25})}\n\n"
                 time.sleep(0.5)
             
-            # Step 3: Generate embedding
-            yield f"data: {json.dumps({'step': 'Generating question embedding...', 'progress': 30})}\n\n"
-            question_embedding = model.encode([translated_question])
+            # New Step: Query Expansion
+            yield f"data: {json.dumps({'step': 'Expanding query for better search...', 'progress': 30})}\n\n"
+            expanded_queries = expand_query_with_gpt(translated_question)
+            all_queries_for_embedding = [translated_question] + expanded_queries
+            time.sleep(0.5)
+            
+            # Step 3: Generate embedding (now using multiple queries)
+            yield f"data: {json.dumps({'step': 'Generating query embeddings...', 'progress': 40})}\n\n"
+            embeddings = model.encode(all_queries_for_embedding)
+            # Average the embeddings to create a single, more robust query vector
+            avg_embedding = np.mean(embeddings, axis=0, keepdims=True)
             time.sleep(0.5)
             
             # Step 4: Search for relevant articles
             yield f"data: {json.dumps({'step': 'Searching for relevant articles...', 'progress': 50})}\n\n"
-            distances, indices = index.search(question_embedding, top_k)
+            distances, indices = index.search(avg_embedding, top_k)
             time.sleep(0.5)
             
             # Step 5: Retrieve article details

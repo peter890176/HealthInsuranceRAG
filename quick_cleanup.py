@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
 Quick Project Cleanup Script
-快速清理專案中最不必要的檔案
+Quickly cleans the project of unnecessary files.
 """
 
 import os
 import shutil
 
 def quick_cleanup():
-    """快速清理專案"""
+    """Quickly clean the project"""
     
-    print("🧹 快速清理專案...")
+    print("🧹 Starting quick project cleanup...")
     
-    # 要刪除的檔案
+    # Files to delete
     files_to_delete = [
-        # 開發階段使用的檢查檔案
+        # Development-stage check files
         "check_abstract_completeness.py",
         "check_long_abstracts.py", 
         "data_quality_check.py",
@@ -22,7 +22,7 @@ def quick_cleanup():
         "test_integrated.log",
         "mesh_crawler.log",
         
-        # 前端測試檔案
+        # Frontend test files
         "web_app/frontend/src/App.test.js",
         "web_app/frontend/src/setupTests.js",
         "web_app/frontend/src/reportWebVitals.js",
@@ -32,30 +32,30 @@ def quick_cleanup():
         "web_app/frontend/README.md",
     ]
     
-    # 要刪除的目錄
+    # Directories to delete
     dirs_to_delete = [
         "__pycache__",
     ]
     
-    # 刪除檔案
+    # Delete files
     for file_path in files_to_delete:
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
-                print(f"✅ 已刪除: {file_path}")
+                print(f"✅ Deleted: {file_path}")
             except Exception as e:
-                print(f"❌ 刪除失敗 {file_path}: {e}")
+                print(f"❌ Failed to delete {file_path}: {e}")
     
-    # 刪除目錄
+    # Delete directories
     for dir_path in dirs_to_delete:
         if os.path.exists(dir_path):
             try:
                 shutil.rmtree(dir_path)
-                print(f"✅ 已刪除目錄: {dir_path}")
+                print(f"✅ Deleted directory: {dir_path}")
             except Exception as e:
-                print(f"❌ 刪除目錄失敗 {dir_path}: {e}")
+                print(f"❌ Failed to delete directory {dir_path}: {e}")
     
-    print("\n🎉 快速清理完成！")
+    print("\n🎉 Quick cleanup complete!")
 
 if __name__ == "__main__":
     quick_cleanup() 
