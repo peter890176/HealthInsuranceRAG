@@ -110,7 +110,7 @@ User Query: "{query}"
         print(f"Query expansion error: {str(e)}")
         return [query] # Return original query in a list if expansion fails
 
-def build_context_from_articles(articles, max_length=4000):
+def build_context_from_articles(articles, max_length=12000):
     """Build context string from retrieved articles"""
     context_parts = []
     current_length = 0
@@ -132,11 +132,15 @@ def build_context_from_articles(articles, max_length=4000):
         context_parts.append(article_text)
         current_length += len(article_text)
     
+    print(f"Selected {len(context_parts)}/{len(articles)} articles for context. (max_length: {max_length}, actual_length: {current_length})")
     return "\n".join(context_parts)
 
 def generate_rag_answer(question, context, original_question, source_language):
     """Generate answer using RAG approach"""
     try:
+        context_article_count = context.count("PMID:")
+        print(f"Generating RAG answer using {context_article_count} articles in context.")
+
         # --- Region Detection ---
         is_taiwan_question = any(keyword in question.lower() for keyword in ['taiwan', 'taiwanese'])
         is_china_question = any(keyword in question.lower() for keyword in ['china', 'chinese'])
@@ -166,7 +170,7 @@ YOUR ROLE AND CAPABILITIES:
 
 Question: {original_question}
 
-Relevant Medical Literature:
+Relevant Medical Literature (Based on {context_article_count} articles):
 {context}
 
 Instructions:
@@ -374,7 +378,7 @@ def rag_qa_with_progress():
     # Get request data outside of the generator
     data = request.get_json()
     question = data.get('question', '')
-    top_k = data.get('top_k', 12)  # Increased from 8 to 12 for more comprehensive answers
+    top_k = data.get('top_k', 20)  # Increased from 12 to 20 for more comprehensive answers
     
     if not question:
         return jsonify({'error': 'Question is required'}), 400
@@ -403,12 +407,13 @@ def rag_qa_with_progress():
                 time.sleep(0.5)
 
             # Step 3: Query Expansion
-            yield f"data: {json.dumps({'step': 'embed'})}\n\n"
+            yield f"data: {json.dumps({'step': 'expand'})}\n\n"
             expanded_queries = expand_query_with_gpt(translated_question)
             all_queries_for_embedding = [translated_question] + expanded_queries
             time.sleep(0.5)
             
             # Step 4: Generate embedding (now using multiple queries)
+            yield f"data: {json.dumps({'step': 'embedding'})}\n\n"
             embeddings = model.encode(all_queries_for_embedding)
             # Average the embeddings to create a single, more robust query vector
             avg_embedding = np.mean(embeddings, axis=0, keepdims=True)
@@ -473,7 +478,7 @@ def rag_question_answer():
     try:
         data = request.get_json()
         question = data.get('question', '')
-        top_k = data.get('top_k', 12)  # Default to 12 articles for RAG (increased from 8)
+        top_k = data.get('top_k', 20)  # Default to 20 articles for RAG (increased from 12)
         
         if not question:
             return jsonify({'error': 'Question is required'}), 400

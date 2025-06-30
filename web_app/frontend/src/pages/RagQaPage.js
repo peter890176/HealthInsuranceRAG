@@ -24,7 +24,8 @@ const RagQaPage = ({
   const ragSteps = [
     { id: 'detect', label: 'Detecting non-English characters' },
     { id: 'translate', label: 'Translating to English' },
-    { id: 'embed', label: 'Generating embeddings' },
+    { id: 'expand', label: 'Expanding query for better search' },
+    { id: 'embedding', label: 'Generating query embeddings' },
     { id: 'search', label: 'Searching relevant articles' },
     { id: 'retrieve', label: 'Retrieving articles' },
     { id: 'context', label: 'Building context' },
@@ -44,7 +45,7 @@ const RagQaPage = ({
       const response = await fetch('http://localhost:5000/api/rag_qa_with_progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', },
-        body: JSON.stringify({ question, top_k: 12 })
+        body: JSON.stringify({ question, top_k: 20 })
       });
 
       const reader = response.body.getReader();
