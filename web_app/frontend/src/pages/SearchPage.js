@@ -25,7 +25,7 @@ const SearchPage = ({
   const searchSteps = [
     { id: 'detect', label: 'Detecting non-English characters' },
     { id: 'translate', label: 'Translating to English' },
-    { id: 'embed', label: 'Generating embedding' },
+    { id: 'embedding', label: 'Generating embedding' },
     { id: 'search', label: 'Searching vector database' },
     { id: 'retrieve', label: 'Retrieving articles' },
     { id: 'complete', label: 'Search completed' }
