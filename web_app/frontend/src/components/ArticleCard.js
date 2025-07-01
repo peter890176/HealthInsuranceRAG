@@ -7,7 +7,7 @@ import ArticleIcon from '@mui/icons-material/Article';
 import PersonIcon from '@mui/icons-material/Person';
 
 const ArticleCard = ({ article }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   const handleExpandClick = () => {
     setExpanded(!expanded);
@@ -53,10 +53,33 @@ const ArticleCard = ({ article }) => {
     }
   };
 
+  // Format date to show only year
+  const formatDateToYear = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      // Try to extract year from various date formats
+      const date = new Date(dateString);
+      if (!isNaN(date.getFullYear())) {
+        return date.getFullYear().toString();
+      }
+      
+      // If direct parsing fails, try to extract year from string
+      const yearMatch = dateString.match(/\b(19|20)\d{2}\b/);
+      if (yearMatch) {
+        return yearMatch[0];
+      }
+      
+      return 'N/A';
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
   // Debug logging
   React.useEffect(() => {
-    console.log(`ArticleCard rendered with rank: ${article.rank}, pmid: ${article.pmid}`);
-  }, [article.rank, article.pmid]);
+    console.log(`ArticleCard rendered with rank: ${article.rank}, pmid: ${article.pmid}, pub_date: ${article.pub_date}`);
+  }, [article.rank, article.pmid, article.pub_date]);
 
   return (
     <ListItem sx={{ display: 'block', p: 0, mb: 2 }}>
@@ -75,7 +98,7 @@ const ArticleCard = ({ article }) => {
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 1 }}>
             <Chip icon={<PersonIcon />} size="small" label={getAuthors(article.authors)} variant="outlined" />
-            <Chip icon={<CalendarMonthIcon />} size="small" label={article.publication_date || 'N/A'} variant="outlined" />
+            <Chip icon={<CalendarMonthIcon />} size="small" label={formatDateToYear(article.pub_date) || 'N/A'} variant="outlined" />
             <Chip icon={<ArticleIcon />} size="small" label={`PMID: ${article.pmid}`} variant="outlined" />
           </Box>
         </Box>
