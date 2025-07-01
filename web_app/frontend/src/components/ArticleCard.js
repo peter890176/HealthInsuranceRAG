@@ -15,11 +15,41 @@ const ArticleCard = ({ article }) => {
 
   const getAuthors = (authors) => {
     if (!authors) return 'N/A';
-    try {
-        const authorList = JSON.parse(authors.replace(/'/g, '"'));
-        return authorList.slice(0, 3).join(', ') + (authorList.length > 3 ? ' et al.' : '');
-    } catch (e) {
-        return authors; // return raw string if parsing fails
+    
+    let authorList = [];
+    
+    // Handle different data formats
+    if (Array.isArray(authors)) {
+      // If it's already an array
+      authorList = authors;
+    } else if (typeof authors === 'string') {
+      try {
+        // Try to parse as JSON first
+        authorList = JSON.parse(authors.replace(/'/g, '"'));
+      } catch (e) {
+        // If JSON parsing fails, treat as comma-separated string
+        authorList = authors.split(',').map(author => author.trim());
+      }
+    } else {
+      return 'N/A';
+    }
+    
+    // Ensure authorList is an array
+    if (!Array.isArray(authorList)) {
+      return 'N/A';
+    }
+    
+    // Filter out empty strings and limit to 2 authors
+    const validAuthors = authorList.filter(author => author && author.trim() !== '');
+    const displayAuthors = validAuthors.slice(0, 2);
+    
+    // Return formatted string
+    if (displayAuthors.length === 0) {
+      return 'N/A';
+    } else if (validAuthors.length <= 2) {
+      return displayAuthors.join(', ');
+    } else {
+      return displayAuthors.join(', ') + ' et al.';
     }
   };
 
