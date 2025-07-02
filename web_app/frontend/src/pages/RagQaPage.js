@@ -34,12 +34,16 @@ const RagQaPage = ({
   ];
 
   const handleRagQuestion = async () => {
+    // Reset all states at the beginning
     setLoading(true);
     setError('');
     setAnswer(null);
     setCurrentStep('');
     setCompletedSteps([]);
     setTranslationInfo(null);
+    
+    // Force a small delay to ensure state updates are processed
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
       const response = await fetch('http://localhost:5000/api/rag_qa_with_progress', {
@@ -71,15 +75,25 @@ const RagQaPage = ({
 
               if (data.step) {
                 setCurrentStep(data.step);
-                if (!completedSteps.includes(data.step)) {
-                    setCompletedSteps(prev => [...prev, data.step]);
-                }
+                setCompletedSteps(prev => {
+                  if (!prev.includes(data.step)) {
+                    return [...prev, data.step];
+                  }
+                  return prev;
+                });
                 
                 if (data.translation_info) {
-                  setTranslationInfo({ original: data.translation_info.replace('Original: ', ''), step: data.step });
+                  setTranslationInfo({ 
+                    original: data.translation_info.replace('Original: ', ''), 
+                    step: data.step 
+                  });
                 }
                 if (data.translation_result) {
-                  setTranslationInfo(prev => ({ ...prev, translated: data.translation_result.replace('Translated: ', ''), step: data.step }));
+                  setTranslationInfo(prev => ({ 
+                    ...prev, 
+                    translated: data.translation_result.replace('Translated: ', ''), 
+                    step: data.step 
+                  }));
                 }
               }
 
@@ -135,6 +149,8 @@ const RagQaPage = ({
             translationInfo={translationInfo}
         />
       )}
+      
+
 
       {answer && (
         <Box sx={{ mt: 4 }}>

@@ -15,11 +15,15 @@ const QontoConnector = styled(StepConnector)(({ theme }) => ({
 }));
 
 const TimelineProgress = ({ steps, completedSteps, currentStep, isLoading, translationInfo }) => {
+  // Ensure completedSteps is always an array
+  const safeCompletedSteps = Array.isArray(completedSteps) ? completedSteps : [];
+  const activeStepIndex = safeCompletedSteps.indexOf(currentStep);
+  
   return (
     <Paper sx={{ p: 3, mb: 3 }}>
-      <Stepper alternativeLabel activeStep={completedSteps.indexOf(currentStep)} connector={<QontoConnector />}>
+      <Stepper alternativeLabel activeStep={activeStepIndex} connector={<QontoConnector />}>
         {steps.map((step) => {
-          const isCompleted = completedSteps.includes(step.id);
+          const isCompleted = safeCompletedSteps.includes(step.id);
           const isActive = currentStep === step.id;
 
           return (
