@@ -117,12 +117,13 @@ const SearchPage = ({
             placeholder="e.g., diabetes treatment, heart disease prevention"
           />
           <TextField
-            label="Top K"
+            label="Number of Results"
             type="number"
             variant="outlined"
             value={topK}
             onChange={(e) => setTopK(Number(e.target.value))}
-            sx={{ width: 120 }}
+            sx={{ width: 140 }}
+            slotProps={{ input: { min: 1, max: 50 } }}
           />
           <Button variant="contained" onClick={handleSearch} disabled={loading} sx={{ px: 4 }}>
             {loading ? <CircularProgress size={24} /> : 'Search'}

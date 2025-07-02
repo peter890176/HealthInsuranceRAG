@@ -16,9 +16,14 @@ const Header = () => {
     >
       <Toolbar>
         <ScienceIcon sx={{ mr: 2, color: 'primary.main' }} />
-        <Typography variant="h6" noWrap component="div">
-          PubMed Research Station
-        </Typography>
+        <Box>
+          <Typography variant="h6" noWrap component="div">
+            Evidence-based Search Station
+          </Typography>
+          <Typography variant="caption" color="text.secondary" noWrap>
+            Currently supporting research on the healthcare system using PubMed resources
+          </Typography>
+        </Box>
       </Toolbar>
     </AppBar>
   );
