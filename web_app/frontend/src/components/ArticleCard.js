@@ -19,6 +19,8 @@ const ArticleCard = ({ article }) => {
     return `${(score * 100).toFixed(2)}%`;
   };
 
+
+
   const getAuthors = (authors) => {
     if (!authors) return 'N/A';
     

@@ -95,6 +95,7 @@ const RagQaPage = ({
         }
       }
     } catch (err) {
+      console.error('RAG QA error:', err);
       setError(err.message || 'RAG QA failed');
       setLoading(false);
     }

@@ -115,8 +115,78 @@ def build_context_from_articles(articles, max_length=12000):
     print(f"Selected {len(context_parts)}/{len(articles)} articles for context. (max_length: {max_length}, actual_length: {current_length})")
     return "\n".join(context_parts)
 
-def generate_rag_answer(question, context, original_question, source_language):
-    """Generate answer using RAG approach"""
+def should_trigger_low_similarity_response(relevant_articles):
+    """Check if we should trigger low similarity response"""
+    if not relevant_articles or len(relevant_articles) == 0:
+        return True, "No articles found"
+    
+    # Check if any article has similarity > 30%
+    max_similarity = max(article.get('similarity_score', 0) for article in relevant_articles)
+    if max_similarity < 0.3:
+        return True, f"Maximum similarity ({max_similarity:.1%}) below 30% threshold"
+    
+    # Check if too few articles
+    if len(relevant_articles) <= 3:
+        return True, f"Only {len(relevant_articles)} articles found"
+    
+    return False, None
+
+def generate_no_relevant_literature_response(original_question, source_language):
+    """Generate response when no relevant literature is found"""
+    return f"""
+I apologize, but I cannot find any literature directly relevant to your question "{original_question}" in the current medical literature database.
+
+**Possible reasons:**
+- Your question may involve a newer research area
+- The database may lack literature on this specific topic
+- Query terms may need adjustment
+
+**Suggestions:**
+- Try rephrasing your question with different keywords
+- Consider asking about related but broader concepts
+- Or ask a more general related question
+
+If needed, I can help you reformulate your query for better results.
+"""
+
+def generate_low_relevance_response(original_question, source_language, max_similarity, article_count):
+    """Generate response when articles have low relevance"""
+    return f"""
+I found {article_count} articles in the database, but none have high relevance to your question "{original_question}". The most relevant article has only {max_similarity:.1%} similarity.
+
+**Analysis:**
+- Found {article_count} articles with limited relevance
+- Maximum similarity: {max_similarity:.1%}
+- This suggests the topic may not be well-covered in our current database
+
+**Suggestions:**
+- Try using different keywords or broader terms
+- Consider asking about related topics
+- The available literature may not address your specific question
+
+Would you like me to provide a brief analysis of the available articles, or would you prefer to rephrase your question?
+"""
+
+def generate_limited_articles_response(original_question, source_language, article_count, avg_similarity):
+    """Generate response when few articles are found but they have good relevance"""
+    return f"""
+I found only {article_count} articles relevant to your question "{original_question}" in the database. While these articles have good relevance (average similarity: {avg_similarity:.1%}), the limited number may not provide a comprehensive answer.
+
+**Note:**
+- Only {article_count} articles found
+- Average similarity: {avg_similarity:.1%}
+- Limited sample size may affect answer completeness
+
+**Suggestions:**
+- Consider asking a broader question to get more results
+- The available literature may be sufficient for basic information
+- You may want to explore related topics for more comprehensive coverage
+
+I'll provide an analysis based on the available articles, but please note the limited scope.
+"""
+
+def generate_normal_rag_response(question, context, original_question, source_language):
+    """Generate normal RAG response when conditions are good"""
     import os
     
     client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -185,4 +255,34 @@ Answer:"""
     except Exception as e:
         print(f"RAG answer generation error: {str(e)}")
         # Re-raise the exception to be caught by the main generator's handler
-        raise e 
+        raise e
+
+def generate_rag_answer(question, context, original_question, source_language, relevant_articles=None):
+    """Generate answer using RAG approach with improved similarity checking"""
+    
+    # Check if we should trigger special responses
+    should_trigger, reason = should_trigger_low_similarity_response(relevant_articles)
+    
+    if should_trigger:
+        if not relevant_articles or len(relevant_articles) == 0:
+            print(f"Triggering no relevant literature response: {reason}")
+            return generate_no_relevant_literature_response(original_question, source_language)
+        
+        max_similarity = max(article.get('similarity_score', 0) for article in relevant_articles)
+        article_count = len(relevant_articles)
+        
+        if max_similarity < 0.3:
+            if article_count <= 3:
+                print(f"Triggering no relevant literature response: {reason}")
+                return generate_no_relevant_literature_response(original_question, source_language)
+            else:
+                print(f"Triggering low relevance response: {reason}")
+                return generate_low_relevance_response(original_question, source_language, max_similarity, article_count)
+        elif article_count <= 3:
+            avg_similarity = sum(article.get('similarity_score', 0) for article in relevant_articles) / article_count
+            print(f"Triggering limited articles response: {reason}")
+            return generate_limited_articles_response(original_question, source_language, article_count, avg_similarity)
+    
+    # Normal response for good similarity and sufficient articles
+    print("Generating normal RAG response")
+    return generate_normal_rag_response(question, context, original_question, source_language) 

@@ -1,9 +1,30 @@
 import React from 'react';
-import { Paper, Typography, Box } from '@mui/material';
+import { Paper, Typography, Box, Alert } from '@mui/material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const RagAnswer = ({ answer, relevantArticles = [] }) => {
+  // Determine response type based on articles
+  const getResponseType = (relevantArticles) => {
+    if (!relevantArticles || relevantArticles.length === 0) {
+      return { type: 'no_articles', message: 'No articles found in the database' };
+    }
+    
+    const maxSimilarity = Math.max(...relevantArticles.map(a => a.similarity_score || 0));
+    const articleCount = relevantArticles.length;
+    
+    if (maxSimilarity < 0.3 && articleCount <= 3) {
+      return { type: 'no_relevant', message: 'No highly relevant literature found' };
+    } else if (maxSimilarity < 0.3) {
+      return { type: 'low_relevance', message: `Found ${articleCount} articles with limited relevance (max: ${(maxSimilarity * 100).toFixed(1)}%)` };
+    } else if (articleCount <= 3) {
+      return { type: 'limited_articles', message: `Only ${articleCount} articles found (good relevance: ${(maxSimilarity * 100).toFixed(1)}%)` };
+    }
+    
+    return { type: 'normal', message: null };
+  };
+
+  const responseInfo = getResponseType(relevantArticles);
 
 
   // Process PMID links in text
@@ -98,7 +119,15 @@ const RagAnswer = ({ answer, relevantArticles = [] }) => {
         AI-Generated Analysis
       </Typography>
       
-
+      {/* Response type alert */}
+      {responseInfo.message && (
+        <Alert 
+          severity={responseInfo.type === 'normal' ? 'info' : responseInfo.type === 'limited_articles' ? 'warning' : 'error'} 
+          sx={{ mb: 2 }}
+        >
+          {responseInfo.message}
+        </Alert>
+      )}
       
       <Box sx={{
         '& p': { mb: 1.5 },

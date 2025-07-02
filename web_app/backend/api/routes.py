@@ -50,7 +50,7 @@ def search():
                         'journal': article.get('journal', ''),
                         'pub_date': article.get('pub_date', ''),
                         'authors': article.get('authors', []),
-                        'similarity_score': float(1 - distance)  # Convert distance to similarity
+                        'similarity_score': max(0, float(1 - distance))  # Convert distance to similarity, ensure non-negative
                     })
         
         return jsonify({
@@ -126,7 +126,7 @@ def search_with_progress():
                             'journal': article.get('journal', ''),
                             'pub_date': article.get('pub_date', ''),
                             'authors': article.get('authors', []),
-                            'similarity_score': float(1 - distance)
+                            'similarity_score': max(0, float(1 - distance))  # Convert distance to similarity, ensure non-negative
                         })
             
             # Step 6: Complete
@@ -211,7 +211,7 @@ def rag_qa_with_progress():
                             'journal': article.get('journal', ''),
                             'pub_date': article.get('pub_date', ''),
                             'authors': article.get('authors', []),
-                            'similarity_score': float(1 - distance)
+                            'similarity_score': max(0, float(1 - distance))  # Convert distance to similarity, ensure non-negative
                         })
             
             # Step 7: Build context
@@ -221,7 +221,7 @@ def rag_qa_with_progress():
             
             # Step 8: Generate AI answer
             yield f"data: {json.dumps({'step': 'generate'})}\n\n"
-            answer = generate_rag_answer(translated_question, context, original_question, source_language)
+            answer = generate_rag_answer(translated_question, context, original_question, source_language, relevant_articles)
             time.sleep(0.5)
             
             # Step 9: Complete
@@ -281,14 +281,14 @@ def rag_question_answer():
                         'journal': article.get('journal', ''),
                         'pub_date': article.get('pub_date', ''),
                         'authors': article.get('authors', []),
-                        'similarity_score': float(1 - distance)
+                        'similarity_score': max(0, float(1 - distance))  # Convert distance to similarity, ensure non-negative
                     })
         
         # Build context from relevant articles
         context = build_context_from_articles(relevant_articles)
         
         # Generate answer using RAG
-        answer = generate_rag_answer(translated_question, context, original_question, 'English')
+        answer = generate_rag_answer(translated_question, context, original_question, 'English', relevant_articles)
         
         return jsonify({
             'original_question': original_question,
