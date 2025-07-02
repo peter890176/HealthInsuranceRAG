@@ -13,6 +13,12 @@ const ArticleCard = ({ article }) => {
     setExpanded(!expanded);
   };
 
+  // Format similarity score to percentage with 2 decimal places
+  const formatSimilarityScore = (score) => {
+    if (score === undefined || score === null) return 'N/A';
+    return `${(score * 100).toFixed(2)}%`;
+  };
+
   const getAuthors = (authors) => {
     if (!authors) return 'N/A';
     
@@ -78,8 +84,8 @@ const ArticleCard = ({ article }) => {
 
   // Debug logging
   React.useEffect(() => {
-    console.log(`ArticleCard rendered with rank: ${article.rank}, pmid: ${article.pmid}, pub_date: ${article.pub_date}`);
-  }, [article.rank, article.pmid, article.pub_date]);
+    console.log(`ArticleCard rendered with rank: ${article.rank}, pmid: ${article.pmid}, pub_date: ${article.pub_date}, similarity: ${article.similarity_score}`);
+  }, [article.rank, article.pmid, article.pub_date, article.similarity_score]);
 
   return (
     <ListItem sx={{ display: 'block', p: 0, mb: 2 }}>
@@ -100,6 +106,11 @@ const ArticleCard = ({ article }) => {
             <Chip icon={<PersonIcon />} size="small" label={getAuthors(article.authors)} variant="outlined" />
             <Chip icon={<CalendarMonthIcon />} size="small" label={formatDateToYear(article.pub_date) || 'N/A'} variant="outlined" />
             <Chip icon={<ArticleIcon />} size="small" label={`PMID: ${article.pmid}`} variant="outlined" />
+            <Chip 
+              size="small" 
+              label={`Similarity: ${formatSimilarityScore(article.similarity_score)}`} 
+              variant="outlined"
+            />
           </Box>
         </Box>
         <Collapse in={expanded} timeout="auto" unmountOnExit>
