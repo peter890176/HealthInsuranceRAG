@@ -1,5 +1,6 @@
-import React from 'react';
-import { Container, Typography, TextField, Button, Box, CircularProgress, Paper, List, Alert, Chip } from '@mui/material';
+import React, { useState } from 'react';
+import { Container, Typography, TextField, Box, CircularProgress, Paper, List, Alert, Chip, IconButton, InputAdornment } from '@mui/material';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import TimelineProgress from '../components/TimelineProgress';
 import ArticleCard from '../components/ArticleCard';
 import RagAnswer from '../components/RagAnswer';
@@ -20,6 +21,7 @@ const RagQaPage = ({
   translationInfo,
   setTranslationInfo
 }) => {
+  const [inputError, setInputError] = useState(false);
 
   const ragSteps = [
     { id: 'detect', label: 'Detecting non-English characters' },
@@ -41,6 +43,12 @@ const RagQaPage = ({
   ];
 
   const handleRagQuestion = async () => {
+    if (!question.trim()) {
+      setInputError(true);
+      return;
+    }
+    setInputError(false);
+    
     // Reset all states at the beginning
     setLoading(true);
     setError('');
@@ -130,21 +138,57 @@ const RagQaPage = ({
       </Typography>
       
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Box display="flex" flexDirection="column" gap={2}>
-          <TextField
+        <TextField
             label="Ask a question"
             variant="outlined"
             fullWidth
             multiline
             rows={4}
             value={question}
-            onChange={(e) => setQuestion(e.target.value)}
+            onChange={(e) => {
+              setQuestion(e.target.value);
+              if (inputError) {
+                setInputError(false);
+              }
+            }}
             placeholder="e.g., How does health insurance affect patient outcomes? What are the latest Medicare policy changes?"
-          />
-          <Button variant="contained" onClick={handleRagQuestion} disabled={loading} sx={{ alignSelf: 'flex-end' }}>
-            {loading ? <CircularProgress size={24} /> : 'Ask AI'}
-          </Button>
-        </Box>
+            error={inputError}
+            helperText={inputError ? "Please enter a question" : ""}
+            sx={{
+                '& .MuiOutlinedInput-root': {
+                    position: 'relative',
+                    pr: '14px' // Keep default padding
+                }
+            }}
+            InputProps={{
+                endAdornment: (
+                    <InputAdornment position="end" sx={{ position: 'absolute', bottom: 16, right: 16 }}>
+                        <IconButton
+                            onClick={handleRagQuestion}
+                            disabled={loading}
+                            sx={{
+                                width: '40px',
+                                height: '40px',
+                                transition: 'all 0.3s ease',
+                                backgroundColor: question.trim() ? '#000000' : '#f0f0f0',
+                                color: question.trim() ? '#ffffff' : '#666666',
+                                '&:hover': {
+                                    backgroundColor: question.trim() ? '#333333' : '#e0e0e0',
+                                    transform: 'scale(1.1)'
+                                }
+                            }}
+                            aria-label="Ask question"
+                        >
+                            {loading ? (
+                                <CircularProgress size={24} color="inherit" />
+                            ) : (
+                                <ArrowUpwardIcon />
+                            )}
+                        </IconButton>
+                    </InputAdornment>
+                )
+            }}
+        />
         
         {/* Try Asking section */}
         <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #e0e0e0' }}>

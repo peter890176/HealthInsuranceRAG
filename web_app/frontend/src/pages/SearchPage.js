@@ -1,5 +1,6 @@
-import React from 'react';
-import { Container, Typography, TextField, Button, Box, CircularProgress, List, Paper, Chip, Alert } from '@mui/material';
+import React, { useState } from 'react';
+import { Container, Typography, TextField, Box, CircularProgress, List, Paper, Chip, Alert, IconButton, InputAdornment } from '@mui/material';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import TimelineProgress from '../components/TimelineProgress';
 import ArticleCard from '../components/ArticleCard';
 
@@ -21,7 +22,8 @@ const SearchPage = ({
   translationInfo,
   setTranslationInfo
 }) => {
-  
+  const [inputError, setInputError] = useState(false);
+
   const searchSteps = [
     { id: 'detect', label: 'Detecting non-English characters' },
     { id: 'translate', label: 'Translating to English' },
@@ -39,6 +41,12 @@ const SearchPage = ({
   ];
 
   const handleSearch = async () => {
+    if (!query.trim()) {
+      setInputError(true);
+      return;
+    }
+    setInputError(false);
+
     setLoading(true);
     setError('');
     setResults([]);
@@ -113,28 +121,64 @@ const SearchPage = ({
       </Typography>
       
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Box display="flex" gap={2}>
-          <TextField
-            label="Enter query"
-            variant="outlined"
-            fullWidth
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="e.g., health insurance coverage, Medicare policy, healthcare costs"
-          />
-          <TextField
-            label="Number of Results"
-            type="number"
-            variant="outlined"
-            value={topK}
-            onChange={(e) => setTopK(Number(e.target.value))}
-            sx={{ width: 180 }}
-            slotProps={{ input: { min: 1, max: 50 } }}
-          />
-          <Button variant="contained" onClick={handleSearch} disabled={loading} sx={{ px: 4 }}>
-            {loading ? <CircularProgress size={24} /> : 'Search'}
-          </Button>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+            <TextField
+                label="Enter query"
+                variant="outlined"
+                fullWidth
+                value={query}
+                onChange={(e) => {
+                    setQuery(e.target.value);
+                    if (inputError) setInputError(false);
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="e.g., health insurance coverage, Medicare policy, healthcare costs"
+                error={inputError}
+                helperText={inputError ? "Please enter a query" : ""}
+                sx={{ 
+                    position: 'relative',
+                    '& .MuiOutlinedInput-root': {
+                        paddingRight: '60px' // Make space for the button
+                    }
+                }}
+                InputProps={{
+                    endAdornment: (
+                        <InputAdornment position="end" sx={{ position: 'absolute', top: 16, right: 16 }}>
+                            <IconButton
+                                onClick={handleSearch}
+                                disabled={loading}
+                                sx={{
+                                    width: '40px',
+                                    height: '40px',
+                                    transition: 'all 0.3s ease',
+                                    backgroundColor: query.trim() ? '#000000' : '#f0f0f0',
+                                    color: query.trim() ? '#ffffff' : '#666666',
+                                    '&:hover': {
+                                        backgroundColor: query.trim() ? '#333333' : '#e0e0e0',
+                                        transform: 'scale(1.1)'
+                                    }
+                                }}
+                                aria-label="Search"
+                            >
+                                {loading ? (
+                                    <CircularProgress size={24} color="inherit" />
+                                ) : (
+                                    <ArrowUpwardIcon />
+                                )}
+                            </IconButton>
+                        </InputAdornment>
+                    )
+                }}
+            />
+            <TextField
+                label="Results"
+                type="number"
+                variant="outlined"
+                value={topK}
+                onChange={(e) => setTopK(Number(e.target.value))}
+                sx={{ width: 120 }}
+                slotProps={{ input: { min: 1, max: 50 } }}
+            />
         </Box>
         
         {/* Try Asking section */}
