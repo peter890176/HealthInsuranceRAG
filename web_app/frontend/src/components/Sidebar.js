@@ -9,8 +9,8 @@ import SettingsIcon from '@mui/icons-material/Settings';
 const drawerWidth = 240;
 
 const navItems = [
-  { text: 'Semantic Search', icon: <SearchIcon />, path: '/search' },
   { text: 'RAG QA', icon: <QuestionAnswerIcon />, path: '/rag' },
+  { text: 'Semantic Search', icon: <SearchIcon />, path: '/search' },
 ];
 
 const futureNavItems = [

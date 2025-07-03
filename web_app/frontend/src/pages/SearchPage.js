@@ -31,6 +31,13 @@ const SearchPage = ({
     { id: 'complete', label: 'Search completed' }
   ];
 
+  // Search examples for Try Asking section
+  const searchExamples = [
+    "health insurance coverage",
+    "Medicare policy changes", 
+    "healthcare costs"
+  ];
+
   const handleSearch = async () => {
     setLoading(true);
     setError('');
@@ -102,19 +109,19 @@ const SearchPage = ({
     <Container maxWidth="lg">
       <Typography variant="h4" sx={{ mb: 1 }}>Semantic Search</Typography>
       <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
-        Find relevant medical articles using AI-powered vector search.
+        Find relevant medical and health insurance articles using AI-powered vector search.
       </Typography>
       
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box display="flex" gap={2}>
           <TextField
-            label="Enter your query"
+            label="Enter query"
             variant="outlined"
             fullWidth
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="e.g., diabetes treatment, heart disease prevention"
+            placeholder="e.g., health insurance coverage, Medicare policy, healthcare costs"
           />
           <TextField
             label="Number of Results"
@@ -122,12 +129,41 @@ const SearchPage = ({
             variant="outlined"
             value={topK}
             onChange={(e) => setTopK(Number(e.target.value))}
-            sx={{ width: 140 }}
+            sx={{ width: 180 }}
             slotProps={{ input: { min: 1, max: 50 } }}
           />
           <Button variant="contained" onClick={handleSearch} disabled={loading} sx={{ px: 4 }}>
             {loading ? <CircularProgress size={24} /> : 'Search'}
           </Button>
+        </Box>
+        
+        {/* Try Asking section */}
+        <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #e0e0e0' }}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, fontWeight: 500 }}>
+            Try these searches:
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {searchExamples.map((example, index) => (
+              <Chip
+                key={index}
+                label={example}
+                variant="outlined"
+                clickable
+                onClick={() => setQuery(example)}
+                sx={{ 
+                  px: 2,
+                  py: 1,
+                  fontSize: '0.9rem',
+                  '&:hover': { 
+                    backgroundColor: 'primary.light',
+                    color: 'primary.dark',
+                    transform: 'translateY(-1px)',
+                    transition: 'all 0.2s ease'
+                  }
+                }}
+              />
+            ))}
+          </Box>
         </Box>
       </Paper>
 

@@ -60,7 +60,7 @@ function App() {
       <Router>
         <MainLayout>
           <Routes>
-            <Route path="/" element={<Navigate replace to="/search" />} />
+            <Route path="/" element={<Navigate replace to="/rag" />} />
             <Route 
               path="/search" 
               element={

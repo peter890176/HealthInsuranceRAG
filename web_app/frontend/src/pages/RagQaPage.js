@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Typography, TextField, Button, Box, CircularProgress, Paper, List, Alert } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, CircularProgress, Paper, List, Alert, Chip } from '@mui/material';
 import TimelineProgress from '../components/TimelineProgress';
 import ArticleCard from '../components/ArticleCard';
 import RagAnswer from '../components/RagAnswer';
@@ -31,6 +31,13 @@ const RagQaPage = ({
     { id: 'context', label: 'Building context' },
     { id: 'generate', label: 'Generating AI answer' },
     { id: 'complete', label: 'RAG analysis completed' }
+  ];
+
+  // RAG examples for Try Asking section
+  const ragExamples = [
+    "How does health insurance affect patient outcomes?",
+    "What are the latest Medicare policy changes?",
+    "How do insurance networks impact healthcare access?"
   ];
 
   const handleRagQuestion = async () => {
@@ -119,24 +126,61 @@ const RagQaPage = ({
     <Container maxWidth="lg">
       <Typography variant="h4" sx={{ mb: 1 }}>RAG Question Answering</Typography>
       <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
-        Get comprehensive answers from AI, backed by medical literature.
+        Get comprehensive answers from AI, backed by medical and health insurance literature.
       </Typography>
       
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box display="flex" flexDirection="column" gap={2}>
           <TextField
-            label="Ask a medical question"
+            label="Ask a question"
             variant="outlined"
             fullWidth
             multiline
             rows={4}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="e.g., What are the latest treatments for diabetes? History of Taiwan's medical reform?"
+            placeholder="e.g., How does health insurance affect patient outcomes? What are the latest Medicare policy changes?"
           />
           <Button variant="contained" onClick={handleRagQuestion} disabled={loading} sx={{ alignSelf: 'flex-end' }}>
             {loading ? <CircularProgress size={24} /> : 'Ask AI'}
           </Button>
+        </Box>
+        
+        {/* Try Asking section */}
+        <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #e0e0e0' }}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 3, fontWeight: 500 }}>
+            Try asking:
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {ragExamples.map((example, index) => (
+              <Chip
+                key={index}
+                label={example}
+                variant="outlined"
+                clickable
+                onClick={() => setQuestion(example)}
+                sx={{ 
+                  justifyContent: 'flex-start',
+                  textAlign: 'left',
+                  height: 'auto',
+                  px: 3,
+                  py: 1.5,
+                  fontSize: '0.9rem',
+                  '& .MuiChip-label': {
+                    whiteSpace: 'normal',
+                    lineHeight: 1.5,
+                    padding: '8px 0'
+                  },
+                  '&:hover': { 
+                    backgroundColor: 'primary.light',
+                    color: 'primary.dark',
+                    transform: 'translateX(4px)',
+                    transition: 'all 0.2s ease'
+                  }
+                }}
+              />
+            ))}
+          </Box>
         </Box>
       </Paper>
 
