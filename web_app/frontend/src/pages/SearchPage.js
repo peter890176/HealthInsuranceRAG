@@ -118,6 +118,7 @@ const SearchPage = ({
       <Typography variant="h4" sx={{ mb: 1 }}>Semantic Search</Typography>
       <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
         Find relevant medical and health insurance articles using AI-powered vector search.
+        Currently supporting research on the healthcare system using PubMed resources.
       </Typography>
       
       <Paper sx={{ p: 3, mb: 3 }}>

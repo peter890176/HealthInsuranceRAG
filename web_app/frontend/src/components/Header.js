@@ -20,9 +20,6 @@ const Header = () => {
           <Typography variant="h6" noWrap component="div">
             Evidence-based Search Station
           </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>
-            Currently supporting research on the healthcare system using PubMed resources
-          </Typography>
         </Box>
       </Toolbar>
     </AppBar>

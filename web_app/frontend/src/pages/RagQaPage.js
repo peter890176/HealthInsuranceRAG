@@ -134,7 +134,8 @@ const RagQaPage = ({
     <Container maxWidth="lg">
       <Typography variant="h4" sx={{ mb: 1 }}>RAG Question Answering</Typography>
       <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
-        Get comprehensive answers from AI, backed by medical and health insurance literature.
+      Currently supporting research on the healthcare system using PubMed resources.
+      Future updates will include more databases for more powerful searches.
       </Typography>
       
       <Paper sx={{ p: 3, mb: 3 }}>
