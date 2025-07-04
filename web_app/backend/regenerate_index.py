@@ -106,10 +106,4 @@ def main():
     logger.info("--- ✅ FAISS Index Regeneration Completed Successfully ---")
 
 if __name__ == "__main__":
-    # Use the non-interactive build script
-    main_build_script_path = os.path.join(os.path.dirname(__file__), 'build_index.py')
-    if os.path.exists(main_build_script_path):
-        import subprocess
-        subprocess.run(['python', main_build_script_path])
-    else:
-        main() 
+    main() 
