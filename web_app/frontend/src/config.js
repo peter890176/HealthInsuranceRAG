@@ -20,7 +20,7 @@ export const API_ENDPOINTS = {
 const isDevelopment = process.env.NODE_ENV === 'development';
 const API_BASE_URL = isDevelopment 
   ? 'http://localhost:5000'  // Local development
-  : 'https://your-railway-app-url.railway.app'; // Production (update this with your actual Railway URL)
+  : 'https://hirag.up.railway.app'; // Production - your actual Railway URL
 
 // Export the full API URLs
 export const getApiUrl = (endpoint) => {

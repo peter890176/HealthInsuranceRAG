@@ -38,7 +38,7 @@ def ensure_files_exist():
 def create_app():
     """Create and configure the Flask application."""
     app = Flask(__name__)
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://hirag.netlify.app"]}})
     
     # Load environment variables
     load_dotenv()
