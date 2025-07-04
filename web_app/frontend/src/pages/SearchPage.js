@@ -3,6 +3,7 @@ import { Container, Typography, TextField, Box, CircularProgress, List, Paper, C
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import TimelineProgress from '../components/TimelineProgress';
 import ArticleCard from '../components/ArticleCard';
+import { getApiUrl, API_ENDPOINTS } from '../config';
 
 const SearchPage = ({
   query,
@@ -55,7 +56,7 @@ const SearchPage = ({
     setTranslationInfo(null);
     
     try {
-      const response = await fetch('http://localhost:5000/api/search_with_progress', {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.SEARCH_WITH_PROGRESS), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, top_k: topK })

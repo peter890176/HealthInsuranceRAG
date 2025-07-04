@@ -4,6 +4,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import TimelineProgress from '../components/TimelineProgress';
 import ArticleCard from '../components/ArticleCard';
 import RagAnswer from '../components/RagAnswer';
+import { getApiUrl, API_ENDPOINTS } from '../config';
 
 const RagQaPage = ({
   question,
@@ -61,7 +62,7 @@ const RagQaPage = ({
     await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
-      const response = await fetch('http://localhost:5000/api/rag_qa_with_progress', {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.RAG_QA_WITH_PROGRESS), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ question, top_k: 20 })
@@ -79,6 +80,7 @@ const RagQaPage = ({
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
+            console.log('SSE line:', line); // Log every SSE line for debugging
             try {
               const data = JSON.parse(line.slice(6));
 
@@ -118,7 +120,8 @@ const RagQaPage = ({
                 return;
               }
             } catch (e) {
-              console.error('Error parsing SSE data:', e);
+              console.error('Error parsing SSE data:', e, line); // Log parsing error and the problematic line
+              continue; // Skip this line and continue
             }
           }
         }
