@@ -5,13 +5,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy requirements file
-COPY web_app/backend/requirements.txt .
+COPY requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code, including the pre-built index
-COPY web_app/backend/ .
+COPY . .
 
 # Set the command to run the application using Gunicorn for production
 CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "app:create_app()"] 
