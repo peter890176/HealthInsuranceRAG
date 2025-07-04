@@ -2,57 +2,33 @@ import json
 import faiss
 import numpy as np
 import os
-import requests
 from flask import Flask, jsonify
 from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
-
-def download_file_from_github(file_path, local_path):
-    """Download a file from GitHub repository."""
-    # GitHub raw content URL (replace with your actual repository)
-    github_url = f"https://raw.githubusercontent.com/peter890176/HealthInsuranceRAG/main/{file_path}"
-    
-    print(f"Downloading {file_path} from GitHub...")
-    print(f"URL: {github_url}")
-    
-    try:
-        response = requests.get(github_url, stream=True, timeout=300)
-        response.raise_for_status()
-        
-        total_size = int(response.headers.get('content-length', 0))
-        print(f"File size: {total_size} bytes")
-        
-        with open(local_path, 'wb') as f:
-            downloaded = 0
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if total_size > 0:
-                        progress = (downloaded / total_size) * 100
-                        print(f"Download progress: {progress:.1f}%")
-        
-        print(f"Downloaded {file_path} successfully.")
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Error downloading {file_path}: {e}")
-        raise e
+from utils.s3_helper import S3Helper
 
 def ensure_files_exist():
-    """Ensure all required files exist, download if necessary."""
+    """Ensure all required files exist, download from S3 if necessary."""
+    s3 = S3Helper()
+    
     files_to_download = [
-        ("web_app/backend/pubmed_faiss.index", "pubmed_faiss.index"),
-        ("web_app/backend/article_ids.json", "article_ids.json"),
-        ("web_app/backend/pubmed_articles.json", "pubmed_articles.json")
+        ("pubmed_faiss.index", "models/pubmed_faiss.index"),
+        ("article_ids.json", "data/article_ids.json"),
+        ("pubmed_articles.json", "data/pubmed_articles.json")
     ]
     
     print("Checking for required files...")
-    for github_path, local_path in files_to_download:
+    for local_path, s3_key in files_to_download:
         print(f"Checking {local_path}...")
         if not os.path.exists(local_path):
-            print(f"File {local_path} not found, downloading...")
-            download_file_from_github(github_path, local_path)
+            print(f"File {local_path} not found, downloading from S3...")
+            
+            # Ensure target directory exists
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            
+            if not s3.download_file(s3_key, local_path):
+                raise Exception(f"Failed to download file from S3: {s3_key}")
         else:
             file_size = os.path.getsize(local_path)
             print(f"File {local_path} exists, size: {file_size} bytes")
@@ -62,7 +38,7 @@ def create_app():
     app = Flask(__name__)
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     
-    # Load environment variables from .env file
+    # Load environment variables
     load_dotenv()
 
     # --- Load Data and Models into App Context ---
@@ -112,7 +88,6 @@ def create_app():
     print("Data loading and model initialization complete.")
 
     # --- Register Blueprints ---
-    # Import and register blueprints after data is loaded
     from api import api_bp
     app.register_blueprint(api_bp)
 
