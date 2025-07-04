@@ -70,13 +70,17 @@ const RagQaPage = ({
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = ''; // Buffer to handle partial chunks
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        buffer += chunk; // Add new chunk to buffer
+        
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -120,12 +124,28 @@ const RagQaPage = ({
                 return;
               }
             } catch (e) {
-              console.error('Error parsing SSE data:', e, line); // Log parsing error and the problematic line
-              continue; // Skip this line and continue
+              console.error('Error parsing SSE data:', e, line);
+              // Don't continue here, just log the error and skip this line
+              continue;
             }
           }
         }
       }
+      
+      // Handle any remaining data in buffer
+      if (buffer.trim() && buffer.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(buffer.slice(6));
+          if (data.complete) {
+            setAnswer(data);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing final buffer data:', e, buffer);
+        }
+      }
+      
     } catch (err) {
       console.error('RAG QA error:', err);
       setError(err.message || 'RAG QA failed');

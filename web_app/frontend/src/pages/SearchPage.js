@@ -64,13 +64,17 @@ const SearchPage = ({
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = ''; // Buffer to handle partial chunks
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        buffer += chunk; // Add new chunk to buffer
+        
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -103,11 +107,27 @@ const SearchPage = ({
                 return;
               }
             } catch (e) {
-              console.error('Error parsing SSE data:', e);
+              console.error('Error parsing SSE data:', e, line);
+              continue;
             }
           }
         }
       }
+      
+      // Handle any remaining data in buffer
+      if (buffer.trim() && buffer.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(buffer.slice(6));
+          if (data.complete) {
+            setResults(data.results);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing final buffer data:', e, buffer);
+        }
+      }
+      
     } catch (err) {
       setError(err.message || 'Search failed');
       setLoading(false);
