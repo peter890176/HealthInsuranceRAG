@@ -2,10 +2,37 @@ import json
 import faiss
 import numpy as np
 import os
+import requests
 from flask import Flask, jsonify
 from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
+
+def download_file_from_github(file_path, local_path):
+    """Download a file from GitHub repository."""
+    # GitHub raw content URL (replace with your actual repository)
+    github_url = f"https://raw.githubusercontent.com/peter890176/HealthInsuranceRAG/main/{file_path}"
+    
+    print(f"Downloading {file_path} from GitHub...")
+    response = requests.get(github_url, stream=True)
+    response.raise_for_status()
+    
+    with open(local_path, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+    print(f"Downloaded {file_path} successfully.")
+
+def ensure_files_exist():
+    """Ensure all required files exist, download if necessary."""
+    files_to_download = [
+        ("web_app/backend/pubmed_faiss.index", "pubmed_faiss.index"),
+        ("web_app/backend/article_ids.json", "article_ids.json"),
+        ("web_app/backend/pubmed_articles.json", "pubmed_articles.json")
+    ]
+    
+    for github_path, local_path in files_to_download:
+        if not os.path.exists(local_path):
+            download_file_from_github(github_path, local_path)
 
 def create_app():
     """Create and configure the Flask application."""
@@ -17,6 +44,9 @@ def create_app():
 
     # --- Load Data and Models into App Context ---
     print("Loading data and models...")
+    
+    # Ensure all required files exist
+    ensure_files_exist()
     
     # 1. Load Sentence Transformer model
     try:
