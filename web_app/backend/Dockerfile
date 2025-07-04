@@ -18,8 +18,7 @@ RUN git lfs install
 COPY web_app/backend/requirements.txt .
 
 # 2. Install dependencies.
-RUN --mount=type=cache,id=pip,target=/root/.cache/pip \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 3. Copy Git metadata to enable LFS pull.
 COPY .git ./.git
