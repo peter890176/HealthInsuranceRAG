@@ -14,13 +14,30 @@ def download_file_from_github(file_path, local_path):
     github_url = f"https://raw.githubusercontent.com/peter890176/HealthInsuranceRAG/main/{file_path}"
     
     print(f"Downloading {file_path} from GitHub...")
-    response = requests.get(github_url, stream=True)
-    response.raise_for_status()
+    print(f"URL: {github_url}")
     
-    with open(local_path, 'wb') as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
-    print(f"Downloaded {file_path} successfully.")
+    try:
+        response = requests.get(github_url, stream=True, timeout=300)
+        response.raise_for_status()
+        
+        total_size = int(response.headers.get('content-length', 0))
+        print(f"File size: {total_size} bytes")
+        
+        with open(local_path, 'wb') as f:
+            downloaded = 0
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    if total_size > 0:
+                        progress = (downloaded / total_size) * 100
+                        print(f"Download progress: {progress:.1f}%")
+        
+        print(f"Downloaded {file_path} successfully.")
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading {file_path}: {e}")
+        raise e
 
 def ensure_files_exist():
     """Ensure all required files exist, download if necessary."""
@@ -30,9 +47,15 @@ def ensure_files_exist():
         ("web_app/backend/pubmed_articles.json", "pubmed_articles.json")
     ]
     
+    print("Checking for required files...")
     for github_path, local_path in files_to_download:
+        print(f"Checking {local_path}...")
         if not os.path.exists(local_path):
+            print(f"File {local_path} not found, downloading...")
             download_file_from_github(github_path, local_path)
+        else:
+            file_size = os.path.getsize(local_path)
+            print(f"File {local_path} exists, size: {file_size} bytes")
 
 def create_app():
     """Create and configure the Flask application."""
