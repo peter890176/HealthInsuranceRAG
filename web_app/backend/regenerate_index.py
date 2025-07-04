@@ -1,129 +1,115 @@
 #!/usr/bin/env python3
 """
-Regenerate FAISS index with current FAISS version to ensure compatibility
+Non-interactive script to regenerate FAISS index for deployment builds.
+Includes a salt to ensure the generated index content changes.
 """
-
 import json
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
 import logging
 import os
+import time
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def remove_old_files():
-    """Remove old index and related files"""
-    files_to_remove = ['pubmed_faiss.index', 'article_ids.json']
-    
-    for file in files_to_remove:
-        if os.path.exists(file):
-            os.remove(file)
-            logger.info(f"Removed old file: {file}")
-        else:
-            logger.info(f"File not found (already removed): {file}")
+# --- Configuration ---
+ARTICLES_INPUT_FILE = 'pubmed_articles.json'
+FAISS_OUTPUT_FILE = 'pubmed_faiss.index'
+IDS_OUTPUT_FILE = 'article_ids.json'
+MODEL_NAME = 'all-MiniLM-L6-v2'
 
 def load_articles():
-    """Load articles data"""
-    logger.info("Loading articles data...")
-    with open('pubmed_articles.json', 'r', encoding='utf-8') as f:
+    """Loads articles from the source JSON file."""
+    logger.info(f"Loading articles from {ARTICLES_INPUT_FILE}...")
+    if not os.path.exists(ARTICLES_INPUT_FILE):
+        logger.error(f"Source articles file not found: {ARTICLES_INPUT_FILE}")
+        raise FileNotFoundError(f"Required data file not found: {ARTICLES_INPUT_FILE}")
+    with open(ARTICLES_INPUT_FILE, 'r', encoding='utf-8') as f:
         articles = json.load(f)
-    logger.info(f"Loaded {len(articles)} articles")
+    logger.info(f"Successfully loaded {len(articles)} articles.")
     return articles
 
 def prepare_texts(articles):
-    """Prepare text data for embedding"""
+    """Prepares texts and extracts PMIDs for embedding."""
     logger.info("Preparing texts for embedding...")
     texts = []
     article_ids = []
     
-    for article in articles:
+    # Add a "salt" to the first article to force a content change
+    # This ensures the embedding and index will be different each time
+    salt = f" [build_salt: {time.time()}]"
+    
+    for i, article in enumerate(articles):
         title = article.get('title', '')
         abstract = article.get('abstract', '')
         text = f"Title: {title}\nAbstract: {abstract}"
+        if i == 0:
+            text += salt
+            logger.info(f"Added salt to first article to ensure unique index.")
+            
         texts.append(text)
         article_ids.append(str(article.get('pmid')))
-    
-    logger.info(f"Prepared {len(texts)} texts")
+        
+    logger.info(f"Prepared {len(texts)} texts for embedding.")
     return texts, article_ids
 
 def generate_embeddings(texts, model):
-    """Generate embeddings using Sentence Transformer"""
-    logger.info("Generating embeddings...")
-    embeddings = model.encode(texts, show_progress_bar=True, convert_to_numpy=True)
-    logger.info(f"Generated embeddings with shape: {embeddings.shape}")
+    """Generates embeddings for the given texts."""
+    logger.info("Generating embeddings... This may take a while.")
+    embeddings = model.encode(
+        texts,
+        show_progress_bar=True,
+        convert_to_numpy=True
+    )
+    logger.info(f"Embedding generation complete. Shape: {embeddings.shape}")
     return embeddings
 
-def build_faiss_index(embeddings):
-    """Build FAISS index"""
-    logger.info("Building FAISS index...")
-    dim = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dim)
+def build_and_save_index(embeddings, article_ids):
+    """Builds and saves the FAISS index and article IDs."""
+    logger.info("Building and saving FAISS index...")
+    dimension = embeddings.shape[1]
+    index = faiss.IndexFlatL2(dimension)
     index.add(embeddings.astype('float32'))
-    logger.info(f"FAISS index built with {index.ntotal} vectors")
-    return index
-
-def save_index_and_data(index, article_ids, articles):
-    """Save index and related data"""
-    logger.info("Saving index and data...")
     
     # Save FAISS index
-    faiss.write_index(index, 'pubmed_faiss.index')
-    logger.info("FAISS index saved")
+    faiss.write_index(index, FAISS_OUTPUT_FILE)
+    logger.info(f"FAISS index with {index.ntotal} vectors saved to {FAISS_OUTPUT_FILE}")
     
-    # Save article IDs
-    with open('article_ids.json', 'w', encoding='utf-8') as f:
+    # Save corresponding article IDs
+    with open(IDS_OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(article_ids, f, ensure_ascii=False, indent=2)
-    logger.info("Article IDs saved")
-
-def test_index(index, model, articles, article_ids):
-    """Test the generated index"""
-    logger.info("Testing index...")
-    
-    test_query = "health insurance coverage"
-    query_embedding = model.encode([test_query])
-    
-    distances, indices = index.search(query_embedding, 5)
-    
-    logger.info("Test search results:")
-    for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
-        if idx < len(articles):
-            article = articles[idx]
-            logger.info(f"{i+1}. PMID: {article.get('pmid')} (distance: {distance:.3f})")
-            logger.info(f"   Title: {article.get('title', '')[:100]}...")
+    logger.info(f"Article IDs saved to {IDS_OUTPUT_FILE}")
 
 def main():
-    """Main function"""
-    logger.info("Starting FAISS index regeneration...")
+    """Main execution function."""
+    logger.info("--- Starting FAISS Index Regeneration for Deployment ---")
     
-    # Remove old files
-    remove_old_files()
+    # 1. Load the Sentence Transformer model
+    logger.info(f"Loading Sentence Transformer model: {MODEL_NAME}...")
+    model = SentenceTransformer(MODEL_NAME)
     
-    # Load model
-    logger.info("Loading Sentence Transformer model...")
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    
-    # Load articles
+    # 2. Load the source articles
     articles = load_articles()
     
-    # Prepare texts
+    # 3. Prepare texts with a salt to ensure uniqueness
     texts, article_ids = prepare_texts(articles)
     
-    # Generate embeddings
+    # 4. Generate embeddings
     embeddings = generate_embeddings(texts, model)
     
-    # Build FAISS index
-    index = build_faiss_index(embeddings)
+    # 5. Build and save the index and IDs
+    build_and_save_index(embeddings, article_ids)
     
-    # Save everything
-    save_index_and_data(index, article_ids, articles)
-    
-    # Test the index
-    test_index(index, model, articles, article_ids)
-    
-    logger.info("✅ FAISS index regeneration completed successfully!")
+    logger.info("--- ✅ FAISS Index Regeneration Completed Successfully ---")
 
 if __name__ == "__main__":
-    main() 
+    # Use the non-interactive build script
+    main_build_script_path = os.path.join(os.path.dirname(__file__), 'build_index.py')
+    if os.path.exists(main_build_script_path):
+        import subprocess
+        subprocess.run(['python', main_build_script_path])
+    else:
+        main() 
