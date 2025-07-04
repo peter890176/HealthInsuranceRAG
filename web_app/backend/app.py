@@ -24,8 +24,10 @@ def ensure_files_exist():
         if not os.path.exists(local_path):
             print(f"File {local_path} not found, downloading from S3...")
             
-            # Ensure target directory exists
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            # Ensure target directory exists (only if local_path has a directory)
+            dir_path = os.path.dirname(local_path)
+            if dir_path:
+                os.makedirs(dir_path, exist_ok=True)
             
             if not s3.download_file(s3_key, local_path):
                 raise Exception(f"Failed to download file from S3: {s3_key}")
