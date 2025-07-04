@@ -53,5 +53,12 @@ logs/
 .gitignore
 
 # Docker
-Dockerfile
-.dockerignore 
+Dockerfile*
+.dockerignore
+
+# Files generated during the build process
+# These should not be copied from local to the container
+pubmed_faiss.index
+article_ids.json
+regenerate_index.py
+test_faiss.py 
