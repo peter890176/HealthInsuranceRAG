@@ -108,14 +108,23 @@ const RagAnswer = ({ answer, relevantArticles = [] }) => {
   return (
     <Paper 
       sx={{ 
-        p: 3, 
+        p: { xs: 2, sm: 3 }, 
         bgcolor: 'primary.lightest',
         border: '1px solid',
         borderColor: 'primary.main',
         boxShadow: 3 
       }}
     >
-      <Typography variant="h5" component="h2" color="primary.dark" sx={{ mb: 2 }}>
+      <Typography 
+        variant="h5" 
+        component="h2" 
+        color="primary.dark" 
+        sx={{ 
+          mb: 2,
+          fontSize: { xs: '1.25rem', sm: '1.5rem' },
+          fontWeight: 600
+        }}
+      >
         AI-Generated Analysis
       </Typography>
       
@@ -123,26 +132,59 @@ const RagAnswer = ({ answer, relevantArticles = [] }) => {
       {responseInfo.message && (
         <Alert 
           severity={responseInfo.type === 'normal' ? 'info' : responseInfo.type === 'limited_articles' ? 'warning' : 'error'} 
-          sx={{ mb: 2 }}
+          sx={{ 
+            mb: 2,
+            fontSize: { xs: '0.8rem', sm: '0.875rem' }
+          }}
         >
           {responseInfo.message}
         </Alert>
       )}
       
       <Box sx={{
-        '& p': { mb: 1.5 },
-        '& h1, & h2, & h3': { mt: 2, mb: 1, borderBottom: '1px solid #ddd', pb: 0.5 },
-        '& ul, & ol': { pl: 2.5, mb: 1.5 },
-        '& a': { color: 'primary.dark', textDecoration: 'underline' },
+        '& p': { 
+          mb: 1.5,
+          fontSize: { xs: '0.875rem', sm: '1rem' },
+          lineHeight: 1.6
+        },
+        '& h1, & h2, & h3': { 
+          mt: 2, 
+          mb: 1, 
+          borderBottom: '1px solid #ddd', 
+          pb: 0.5,
+          fontSize: { xs: '1.1rem', sm: '1.25rem' },
+          fontWeight: 600
+        },
+        '& ul, & ol': { 
+          pl: { xs: 2, sm: 2.5 }, 
+          mb: 1.5,
+          fontSize: { xs: '0.875rem', sm: '1rem' }
+        },
+        '& li': {
+          fontSize: { xs: '0.875rem', sm: '1rem' },
+          lineHeight: 1.5
+        },
+        '& a': { 
+          color: 'primary.dark', 
+          textDecoration: 'underline',
+          fontSize: { xs: '0.875rem', sm: '1rem' }
+        },
         '& .pmid-link': { 
           color: 'primary.main', 
           textDecoration: 'underline',
           cursor: 'pointer',
           fontWeight: 'bold',
+          fontSize: { xs: '0.875rem', sm: '1rem' },
           '&:hover': {
             color: 'primary.dark',
             textDecoration: 'none'
           }
+        },
+        '& strong, & b': {
+          fontSize: { xs: '0.875rem', sm: '1rem' }
+        },
+        '& em, & i': {
+          fontSize: { xs: '0.875rem', sm: '1rem' }
         }
       }}>
         <ReactMarkdown 

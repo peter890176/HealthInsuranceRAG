@@ -135,15 +135,37 @@ const SearchPage = ({
   };
 
   return (
-    <Container maxWidth="lg">
-      <Typography variant="h4" sx={{ mb: 1 }}>Semantic Search</Typography>
-      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
+    <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+      <Typography 
+        variant="h4" 
+        sx={{ 
+          mb: 1,
+          fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
+          fontWeight: 600
+        }}
+      >
+        Semantic Search
+      </Typography>
+      <Typography 
+        variant="subtitle1" 
+        color="text.secondary" 
+        sx={{ 
+          mb: 3,
+          fontSize: { xs: '0.875rem', sm: '1rem' },
+          lineHeight: 1.5
+        }}
+      >
         Find relevant medical and health insurance articles using AI-powered vector search.
         Currently supporting research on the healthcare system using PubMed resources.
       </Typography>
       
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 2, 
+          alignItems: 'flex-start',
+          flexDirection: { xs: 'column', sm: 'row' }
+        }}>
             <TextField
                 label="Enter query"
                 variant="outlined"
@@ -161,6 +183,12 @@ const SearchPage = ({
                     position: 'relative',
                     '& .MuiOutlinedInput-root': {
                         paddingRight: '60px' // Make space for the button
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    },
+                    '& .MuiInputBase-input': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
                     }
                 }}
                 InputProps={{
@@ -170,8 +198,8 @@ const SearchPage = ({
                                 onClick={handleSearch}
                                 disabled={loading}
                                 sx={{
-                                    width: '40px',
-                                    height: '40px',
+                                    width: { xs: '36px', sm: '40px' },
+                                    height: { xs: '36px', sm: '40px' },
                                     transition: 'all 0.3s ease',
                                     backgroundColor: query.trim() ? '#000000' : '#f0f0f0',
                                     color: query.trim() ? '#ffffff' : '#666666',
@@ -183,9 +211,9 @@ const SearchPage = ({
                                 aria-label="Search"
                             >
                                 {loading ? (
-                                    <CircularProgress size={24} color="inherit" />
+                                    <CircularProgress size={20} color="inherit" />
                                 ) : (
-                                    <ArrowUpwardIcon />
+                                    <ArrowUpwardIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
                                 )}
                             </IconButton>
                         </InputAdornment>
@@ -198,17 +226,33 @@ const SearchPage = ({
                 variant="outlined"
                 value={topK}
                 onChange={(e) => setTopK(Number(e.target.value))}
-                sx={{ width: 120 }}
+                sx={{ 
+                  width: { xs: '100%', sm: 120 },
+                  minWidth: { xs: 'auto', sm: 120 }
+                }}
                 slotProps={{ input: { min: 1, max: 50 } }}
             />
         </Box>
         
         {/* Try Asking section */}
         <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #e0e0e0' }}>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, fontWeight: 500 }}>
+          <Typography 
+            variant="subtitle2" 
+            color="text.secondary" 
+            sx={{ 
+              mb: 2, 
+              fontWeight: 500,
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }}
+          >
             Try these searches:
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2,
+            flexDirection: { xs: 'column', sm: 'row' },
+            flexWrap: 'wrap'
+          }}>
             {searchExamples.map((example, index) => (
               <Chip
                 key={index}
@@ -217,9 +261,9 @@ const SearchPage = ({
                 clickable
                 onClick={() => setQuery(example)}
                 sx={{ 
-                  px: 2,
-                  py: 1,
-                  fontSize: '0.9rem',
+                  px: { xs: 1.5, sm: 2 },
+                  py: { xs: 0.75, sm: 1 },
+                  fontSize: { xs: '0.8rem', sm: '0.9rem' },
                   '&:hover': { 
                     backgroundColor: 'primary.light',
                     color: 'primary.dark',
@@ -245,7 +289,14 @@ const SearchPage = ({
       
       {results.length > 0 && (
         <Box sx={{ mt: 4 }}>
-          <Typography variant="h5" gutterBottom>
+          <Typography 
+            variant="h5" 
+            gutterBottom
+            sx={{ 
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              fontWeight: 600
+            }}
+          >
             Search Results ({results.length})
           </Typography>
           <List>

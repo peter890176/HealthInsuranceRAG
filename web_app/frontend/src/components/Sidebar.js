@@ -1,5 +1,15 @@
 import React from 'react';
-import { Drawer, Toolbar, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
+import {
+  Drawer,
+  Toolbar,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  useTheme,
+  useMediaQuery
+} from '@mui/material';
 import { NavLink } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
@@ -18,16 +28,12 @@ const futureNavItems = [
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings', disabled: true },
 ]
 
-const Sidebar = () => {
-  return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
-      }}
-    >
+const Sidebar = ({ mobileOpen, onDrawerToggle, isMobile }) => {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const drawer = (
+    <>
       <Toolbar />
       <List>
         {navItems.map((item) => (
@@ -35,15 +41,27 @@ const Sidebar = () => {
             <ListItemButton
               component={NavLink}
               to={item.path}
+              onClick={isMobile ? onDrawerToggle : undefined}
               sx={{
                 '&.active': {
                   backgroundColor: 'action.selected',
                   fontWeight: 'fontWeightBold',
                 },
+                py: { xs: 1.5, sm: 1 }, // Responsive padding
+                px: { xs: 2, sm: 2 }, // Responsive padding
               }}
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemIcon sx={{ minWidth: { xs: '40px', sm: '56px' } }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText
+                primary={item.text}
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    fontSize: { xs: '0.9rem', sm: '1rem' }
+                  }
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
@@ -51,14 +69,70 @@ const Sidebar = () => {
       <List sx={{ mt: 'auto' }}>
         {futureNavItems.map((item) => (
            <ListItem key={item.text} disablePadding>
-             <ListItemButton disabled={item.disabled}>
-               <ListItemIcon>{item.icon}</ListItemIcon>
-               <ListItemText primary={item.text} secondary="Future" />
+             <ListItemButton
+               disabled={item.disabled}
+               sx={{
+                 py: { xs: 1.5, sm: 1 },
+                 px: { xs: 2, sm: 2 },
+               }}
+             >
+               <ListItemIcon sx={{ minWidth: { xs: '40px', sm: '56px' } }}>
+                 {item.icon}
+               </ListItemIcon>
+               <ListItemText
+                 primary={item.text}
+                 secondary="Future"
+                 sx={{
+                   '& .MuiListItemText-primary': {
+                     fontSize: { xs: '0.9rem', sm: '1rem' }
+                   }
+                 }}
+               />
              </ListItemButton>
            </ListItem>
         ))}
       </List>
-    </Drawer>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+            backgroundColor: 'background.paper'
+          },
+        }}
+      >
+        {drawer}
+      </Drawer>
+
+      {/* Desktop drawer */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: 'none', md: 'block' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+            backgroundColor: 'background.paper'
+          },
+        }}
+        open
+      >
+        {drawer}
+      </Drawer>
+    </>
   );
 };
 

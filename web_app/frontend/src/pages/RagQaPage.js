@@ -154,14 +154,31 @@ const RagQaPage = ({
   };
 
   return (
-    <Container maxWidth="lg">
-      <Typography variant="h4" sx={{ mb: 1 }}>RAG Question Answering</Typography>
-      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
-      Currently supporting research on the healthcare system using PubMed resources.
-      Future updates will include more databases for more powerful searches.
+    <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+      <Typography 
+        variant="h4" 
+        sx={{ 
+          mb: 1,
+          fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
+          fontWeight: 600
+        }}
+      >
+        RAG Question Answering
+      </Typography>
+      <Typography 
+        variant="subtitle1" 
+        color="text.secondary" 
+        sx={{ 
+          mb: 3,
+          fontSize: { xs: '0.875rem', sm: '1rem' },
+          lineHeight: 1.5
+        }}
+      >
+        Currently supporting research on the healthcare system using PubMed resources.
+        Future updates will include more databases for more powerful searches.
       </Typography>
       
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
         <TextField
             label="Ask a question"
             variant="outlined"
@@ -182,6 +199,12 @@ const RagQaPage = ({
                 '& .MuiOutlinedInput-root': {
                     position: 'relative',
                     pr: '14px' // Keep default padding
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: { xs: '0.875rem', sm: '1rem' }
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: { xs: '0.875rem', sm: '1rem' }
                 }
             }}
             InputProps={{
@@ -191,8 +214,8 @@ const RagQaPage = ({
                             onClick={handleRagQuestion}
                             disabled={loading}
                             sx={{
-                                width: '40px',
-                                height: '40px',
+                                width: { xs: '36px', sm: '40px' },
+                                height: { xs: '36px', sm: '40px' },
                                 transition: 'all 0.3s ease',
                                 backgroundColor: question.trim() ? '#000000' : '#f0f0f0',
                                 color: question.trim() ? '#ffffff' : '#666666',
@@ -204,9 +227,9 @@ const RagQaPage = ({
                             aria-label="Ask question"
                         >
                             {loading ? (
-                                <CircularProgress size={24} color="inherit" />
+                                <CircularProgress size={20} color="inherit" />
                             ) : (
-                                <ArrowUpwardIcon />
+                                <ArrowUpwardIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
                             )}
                         </IconButton>
                     </InputAdornment>
@@ -216,7 +239,15 @@ const RagQaPage = ({
         
         {/* Try Asking section */}
         <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #e0e0e0' }}>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 3, fontWeight: 500 }}>
+          <Typography 
+            variant="subtitle2" 
+            color="text.secondary" 
+            sx={{ 
+              mb: 3, 
+              fontWeight: 500,
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }}
+          >
             Try asking:
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -231,13 +262,13 @@ const RagQaPage = ({
                   justifyContent: 'flex-start',
                   textAlign: 'left',
                   height: 'auto',
-                  px: 3,
-                  py: 1.5,
-                  fontSize: '0.9rem',
+                  px: { xs: 2, sm: 3 },
+                  py: { xs: 1, sm: 1.5 },
+                  fontSize: { xs: '0.8rem', sm: '0.9rem' },
                   '& .MuiChip-label': {
                     whiteSpace: 'normal',
                     lineHeight: 1.5,
-                    padding: '8px 0'
+                    padding: { xs: '6px 0', sm: '8px 0' }
                   },
                   '&:hover': { 
                     backgroundColor: 'primary.light',
@@ -261,13 +292,19 @@ const RagQaPage = ({
             translationInfo={translationInfo}
         />
       )}
-      
-
 
       {answer && (
         <Box sx={{ mt: 4 }}>
           <RagAnswer answer={answer.answer} relevantArticles={answer.relevant_articles} />
-          <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+          <Typography 
+            variant="h5" 
+            gutterBottom 
+            sx={{ 
+              mt: 4,
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              fontWeight: 600
+            }}
+          >
             Supporting Articles ({answer.relevant_articles.length})
           </Typography>
           <List>

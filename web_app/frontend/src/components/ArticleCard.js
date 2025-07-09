@@ -94,37 +94,102 @@ const ArticleCard = ({ article }) => {
       <Paper 
         id={`article-${article.rank}`}
         sx={{ 
-          p: 2.5, 
+          p: { xs: 2, sm: 2.5 }, 
           ':hover': { boxShadow: 4 }, 
           transition: 'box-shadow 0.3s',
           scrollMarginTop: '20px' // Ensure proper margin when scrolling
         }}
       >
         <Box onClick={handleExpandClick} sx={{ cursor: 'pointer' }}>
-          <Typography variant="h6" component="h3" sx={{ mb: 1 }}>
+          <Typography 
+            variant="h6" 
+            component="h3" 
+            sx={{ 
+              mb: 1,
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              lineHeight: 1.4
+            }}
+          >
             {article.title || 'No Title Available'}
           </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 1 }}>
-            <Chip icon={<PersonIcon />} size="small" label={getAuthors(article.authors)} variant="outlined" />
-            <Chip icon={<CalendarMonthIcon />} size="small" label={formatDateToYear(article.pub_date) || 'N/A'} variant="outlined" />
-            <Chip icon={<ArticleIcon />} size="small" label={`PMID: ${article.pmid}`} variant="outlined" />
+          <Box sx={{ 
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: { xs: 0.5, sm: 1 }, 
+            alignItems: 'center', 
+            mb: 1 
+          }}>
+            <Chip 
+              icon={<PersonIcon />} 
+              size="small" 
+              label={getAuthors(article.authors)} 
+              variant="outlined"
+              sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+            />
+            <Chip 
+              icon={<CalendarMonthIcon />} 
+              size="small" 
+              label={formatDateToYear(article.pub_date) || 'N/A'} 
+              variant="outlined"
+              sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+            />
+            <Chip 
+              icon={<ArticleIcon />} 
+              size="small" 
+              label={`PMID: ${article.pmid}`} 
+              variant="outlined"
+              sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+            />
             <Chip 
               size="small" 
               label={`Similarity: ${formatSimilarityScore(article.similarity_score)}`} 
               variant="outlined"
+              sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
             />
           </Box>
         </Box>
         <Collapse in={expanded} timeout="auto" unmountOnExit>
-          <Typography variant="body2" sx={{ mt: 2, whiteSpace: 'pre-wrap', maxHeight: '200px', overflowY: 'auto', p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              mt: 2, 
+              whiteSpace: 'pre-wrap', 
+              maxHeight: '200px', 
+              overflowY: 'auto', 
+              p: 1, 
+              bgcolor: 'grey.50', 
+              borderRadius: 1,
+              fontSize: { xs: '0.8rem', sm: '0.875rem' },
+              lineHeight: 1.5
+            }}
+          >
             {article.abstract || 'No abstract available.'}
           </Typography>
         </Collapse>
-        <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Link href={`https://pubmed.ncbi.nlm.nih.gov/${article.pmid}`} target="_blank" rel="noopener">
+        <Box sx={{ 
+          mt: 1, 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 0 }
+        }}>
+          <Link 
+            href={`https://pubmed.ncbi.nlm.nih.gov/${article.pmid}`} 
+            target="_blank" 
+            rel="noopener"
+            sx={{ 
+              fontSize: { xs: '0.8rem', sm: '0.875rem' },
+              textAlign: { xs: 'center', sm: 'left' }
+            }}
+          >
             View on PubMed
           </Link>
-          <IconButton onClick={handleExpandClick} aria-label={expanded ? 'show less' : 'show more'}>
+          <IconButton 
+            onClick={handleExpandClick} 
+            aria-label={expanded ? 'show less' : 'show more'}
+            size="small"
+          >
             {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </Box>

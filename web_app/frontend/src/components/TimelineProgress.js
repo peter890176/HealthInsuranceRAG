@@ -20,8 +20,21 @@ const TimelineProgress = ({ steps, completedSteps, currentStep, isLoading, trans
   const activeStepIndex = safeCompletedSteps.indexOf(currentStep);
   
   return (
-    <Paper sx={{ p: 3, mb: 3 }}>
-      <Stepper alternativeLabel activeStep={activeStepIndex} connector={<QontoConnector />}>
+    <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+      <Stepper 
+        alternativeLabel 
+        activeStep={activeStepIndex} 
+        connector={<QontoConnector />}
+        sx={{
+          '& .MuiStepLabel-label': {
+            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+            lineHeight: 1.2
+          },
+          '& .MuiStepLabel-alternativeLabel': {
+            marginTop: { xs: '4px', sm: '8px' }
+          }
+        }}
+      >
         {steps.map((step) => {
           const isCompleted = safeCompletedSteps.includes(step.id);
           const isActive = currentStep === step.id;
@@ -31,37 +44,112 @@ const TimelineProgress = ({ steps, completedSteps, currentStep, isLoading, trans
               <StepLabel
                 StepIconComponent={(props) => {
                   if (isCompleted && (!isLoading || !isActive)) {
-                    return <CheckCircleIcon color="success" />;
+                    return <CheckCircleIcon color="success" sx={{ fontSize: { xs: '20px', sm: '24px' } }} />;
                   }
                   if (isActive) {
-                    return <CircularProgress size={24} />;
+                    return <CircularProgress size={20} />;
                   }
                   return (
-                    <Box sx={{ color: 'grey.400', border: '1px solid', borderRadius: '50%', width: 24, height: 24 }} />
+                    <Box sx={{ 
+                      color: 'grey.400', 
+                      border: '1px solid', 
+                      borderRadius: '50%', 
+                      width: { xs: 20, sm: 24 }, 
+                      height: { xs: 20, sm: 24 } 
+                    }} />
                   );
                 }}
               >
-                <Typography variant="caption">{step.label}</Typography>
+                <Typography 
+                  variant="caption"
+                  sx={{ 
+                    fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                    lineHeight: 1.2
+                  }}
+                >
+                  {step.label}
+                </Typography>
               </StepLabel>
             </Step>
           );
         })}
       </Stepper>
       {translationInfo && (
-        <Paper variant="outlined" sx={{ mt: 2, p: 2, bgcolor: 'grey.100' }}>
+        <Paper 
+          variant="outlined" 
+          sx={{ 
+            mt: 2, 
+            p: { xs: 1.5, sm: 2 }, 
+            bgcolor: 'grey.100' 
+          }}
+        >
             <Box display="flex" alignItems="center" mb={1}>
                 <TranslateIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }}/>
-                <Typography variant="subtitle2" color="text.secondary">Translation Details</Typography>
+                <Typography 
+                  variant="subtitle2" 
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+                >
+                  Translation Details
+                </Typography>
             </Box>
-            <Chip icon={<GavelIcon />} label="Original" size="small" sx={{ mr: 1 }} />
-            <Typography variant="body2" component="span" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 0.5, sm: 1 },
+              alignItems: { xs: 'flex-start', sm: 'center' }
+            }}>
+              <Chip 
+                icon={<GavelIcon />} 
+                label="Original" 
+                size="small" 
+                sx={{ 
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  alignSelf: { xs: 'flex-start', sm: 'center' }
+                }} 
+              />
+              <Typography 
+                variant="body2" 
+                component="span" 
+                sx={{ 
+                  fontStyle: 'italic', 
+                  color: 'text.secondary',
+                  fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                  wordBreak: 'break-word'
+                }}
+              >
                 "{translationInfo.original}"
-            </Typography>
-            <br />
-            <Chip icon={<AutoAwesomeIcon />} label="Translated" color="primary" size="small" sx={{ mr: 1, mt: 1 }} />
-            <Typography variant="body2" component="span" sx={{ fontWeight: 'medium' }}>
+              </Typography>
+            </Box>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 0.5, sm: 1 },
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              mt: 1
+            }}>
+              <Chip 
+                icon={<AutoAwesomeIcon />} 
+                label="Translated" 
+                color="primary" 
+                size="small" 
+                sx={{ 
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  alignSelf: { xs: 'flex-start', sm: 'center' }
+                }} 
+              />
+              <Typography 
+                variant="body2" 
+                component="span" 
+                sx={{ 
+                  fontWeight: 'medium',
+                  fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                  wordBreak: 'break-word'
+                }}
+              >
                 "{translationInfo.translated}"
-            </Typography>
+              </Typography>
+            </Box>
         </Paper>
       )}
     </Paper>
