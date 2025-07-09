@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Box, useTheme, useMediaQuery, IconButton } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import { Box, useTheme, useMediaQuery } from '@mui/material';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 

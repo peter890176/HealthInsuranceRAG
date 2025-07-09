@@ -30,7 +30,6 @@ const futureNavItems = [
 
 const Sidebar = ({ mobileOpen, onDrawerToggle, isMobile }) => {
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const drawer = (
     <>
