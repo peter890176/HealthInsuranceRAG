@@ -6,9 +6,7 @@ import {
   ListItem,
   ListItemButton,
   ListItemIcon,
-  ListItemText,
-  useTheme,
-  useMediaQuery
+  ListItemText
 } from '@mui/material';
 import { NavLink } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
@@ -29,8 +27,6 @@ const futureNavItems = [
 ]
 
 const Sidebar = ({ mobileOpen, onDrawerToggle, isMobile }) => {
-  const theme = useTheme();
-
   const drawer = (
     <>
       <Toolbar />
