@@ -106,7 +106,7 @@ const Sidebar = ({ mobileOpen, onDrawerToggle, isMobile }) => {
           keepMounted: true, // Better open performance on mobile.
         }}
         sx={{
-          display: { xs: 'block', md: 'none' },
+          display: { xs: 'block', sm: 'none' }, // Updated to match new breakpoint logic
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: drawerWidth,
@@ -121,7 +121,7 @@ const Sidebar = ({ mobileOpen, onDrawerToggle, isMobile }) => {
       <Drawer
         variant="permanent"
         sx={{
-          display: { xs: 'none', md: 'block' },
+          display: { xs: 'none', sm: 'block' }, // Updated to match new breakpoint logic
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: drawerWidth,

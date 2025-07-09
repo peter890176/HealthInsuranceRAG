@@ -7,7 +7,7 @@ import Sidebar from '../components/Sidebar';
 const MainLayout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // Changed from 'md' to 'sm' for better mobile detection
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
