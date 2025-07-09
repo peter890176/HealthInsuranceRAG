@@ -22,16 +22,24 @@ const TimelineProgress = ({ steps, completedSteps, currentStep, isLoading, trans
   return (
     <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
       <Stepper 
-        alternativeLabel 
+        alternativeLabel={false} // Use vertical layout for better mobile experience
         activeStep={activeStepIndex} 
         connector={<QontoConnector />}
+        orientation="vertical" // Force vertical layout
         sx={{
           '& .MuiStepLabel-label': {
-            fontSize: { xs: '0.7rem', sm: '0.75rem' },
-            lineHeight: 1.2
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            lineHeight: 1.3,
+            fontWeight: 500
           },
-          '& .MuiStepLabel-alternativeLabel': {
-            marginTop: { xs: '4px', sm: '8px' }
+          '& .MuiStepLabel-root': {
+            padding: { xs: '8px 0', sm: '12px 0' }
+          },
+          '& .MuiStepConnector-root': {
+            marginLeft: { xs: '10px', sm: '12px' }
+          },
+          '& .MuiStep-root': {
+            marginBottom: { xs: '8px', sm: '12px' }
           }
         }}
       >
@@ -61,10 +69,12 @@ const TimelineProgress = ({ steps, completedSteps, currentStep, isLoading, trans
                 }}
               >
                 <Typography 
-                  variant="caption"
+                  variant="body2"
                   sx={{ 
-                    fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                    lineHeight: 1.2
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    lineHeight: 1.3,
+                    fontWeight: isActive ? 600 : 400,
+                    color: isActive ? 'primary.main' : 'text.primary'
                   }}
                 >
                   {step.label}
