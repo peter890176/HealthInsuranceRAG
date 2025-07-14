@@ -1,86 +1,126 @@
-# PubMed Health Insurance Literature Crawler
+# PubMed Health Insurance Semantic Search & RAG QA Platform
 
-A Python tool for crawling health insurance related literature from PubMed using MeSH (Medical Subject Headings) queries. This tool efficiently retrieves and processes large amounts of biomedical literature data with support for multiple output formats including APA citations.
+> Developed with Gemini 2.5 Pro assistance and verified by the author.
+
+A full-stack AI-powered platform for semantic search and retrieval-augmented generation (RAG) Q&A on PubMed health insurance literature.
+
+---
+
+## Live Demo
+
+[https://hirag.netlify.app/rag](https://hirag.netlify.app/rag)
+
+---
 
 ## Features
 
-- **MeSH-based Querying**: Uses precise MeSH vocabulary for accurate literature retrieval
-- **Batch Processing**: Efficiently handles large datasets (target: 10,000+ articles)
-- **Multiple Output Formats**: JSON, TXT, and APA citation formats
-- **Comprehensive Data Extraction**: Includes abstracts, authors, journals, dates, DOIs, and MeSH terms
-- **APA Citation Generation**: Directly generates APA format from parsed XML data (not via RIS)
-- **Integrated Testing**: One-click test for all major functions
-- **Robust Error Handling**: Logs errors and progress
+- **Semantic Search**: Fast, vector-based search over PubMed articles using FAISS and Sentence Transformers.
+- **RAG Q&A**: Ask natural language questions and get AI-generated answers with supporting articles.
+- **Multilingual Support**: Automatic translation for non-English queries (e.g., Chinese).
+- **Streaming Progress**: Real-time progress updates for long-running queries.
+- **Responsive UI**: Mobile-friendly, modern Material-UI design.
+- **Cloud Storage**: Large data files (FAISS index, articles) are loaded from AWS S3.
+- **Easy Deployment**: Dockerized backend, Netlify frontend, and deployment guides for Railway/Render.
 
-## Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd pubmed-health-insurance-crawler
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. (Optional) Configure PubMed API key in `.env` or `config.py` for higher rate limits.
-
-## Configuration
-
-Edit `config.py` to adjust:
-- API base URL and key
-- Batch size and limits
-
-## Usage
-
-### Run the main crawler
-```bash
-python mesh_health_insurance_crawler.py
-```
-
-### Run integrated tests
-```bash
-python test_integrated_system.py
-```
-
-## Output Formats
-
-All output files are saved in a timestamped directory under `output/` (ignored by git):
-
-- `health_insurance_articles.json` — Full structured data
-- `articles.json` — Article list only
-- `articles.txt` — Human-readable text
-- `pmids.txt` — PMID list
-- `apa_references.txt` — APA citation list (generated directly from XML data)
-- `statistics.txt` — Summary statistics
-
-### Example: APA Citation Output
-```
-APA Reference List
-==================================================
-1. Smith, J., Doe, J., & Johnson, A. (2023, June 15). Health Insurance Coverage and Access to Care. Journal of Health Policy, 15(3), 245-260. https://doi.org/10.1007/s12345-023-01234-5
-```
+---
 
 ## Project Structure
+
 ```
-├── mesh_health_insurance_crawler.py  # Main crawler script
-├── utils.py                          # Utilities (XML parsing, APA generator)
-├── config.py                         # Configuration
+root/
+├── mesh_health_insurance_crawler.py   # PubMed crawler (data preparation)
+├── web_app/
+│   ├── backend/                      # Flask API, FAISS, S3, Docker
+│   └── frontend/                     # React, Material-UI, Netlify
+├── output/                           # Data output (gitignored)
 ├── requirements.txt                  # Python dependencies
 ├── README.md                         # This file
-├── test_integrated_system.py         # Integrated test script
-├── .gitignore                        # Ignore rules
 ```
 
-## Notes
-- All APA citations are generated directly from parsed PubMed XML data, not via RIS or other formats.
-- All output and log files are ignored by git by default.
-- For best results, use a PubMed API key (see NCBI documentation).
+---
+
+## Backend
+
+- **API**: Flask REST API for search, RAG Q&A, translation, and health check.
+- **Vector Search**: FAISS index for fast semantic search.
+- **RAG Pipeline**: Sentence Transformers + OpenAI/HuggingFace for answer generation.
+- **S3 Integration**: Large files are loaded from AWS S3 at startup.
+- **Dockerized**: Ready for Railway, Render, or any Docker-compatible cloud.
+
+### Run Locally
+
+```bash
+cd web_app/backend
+docker-compose up --build
+# or
+docker build -t health-insurance-backend .
+docker run -p 5000:5000 health-insurance-backend
+```
+
+### API Endpoints
+
+- `POST /api/search_with_progress`
+- `POST /api/rag_qa_with_progress`
+- `POST /api/translate`
+- `GET  /api/health`
+
+See `web_app/backend/api/routes.py` for details.
+
+---
+
+## Frontend
+
+- **Framework**: React + Material-UI
+- **Pages**: Semantic Search, RAG Q&A
+- **Features**: Streaming progress, responsive design, PubMed article cards, markdown rendering
+- **Deployment**: Netlify-ready
+
+### Run Locally
+
+```bash
+cd web_app/frontend
+npm install
+npm start
+```
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+---
+
+## Data Preparation
+
+- Use `mesh_health_insurance_crawler.py` to crawl PubMed and generate data files.
+- Use `generate_embeddings.py` and `faiss_index.py` to create embeddings and FAISS index.
+- Upload large files to S3 using `upload_to_s3.py`.
+
+---
+
+## Deployment
+
+- **Backend**: Deploy with Docker (Railway, Render, etc.)
+- **Frontend**: Deploy with Netlify (see `netlify.toml`)
+- **Environment Variables**: Set S3, OpenAI, and other keys as needed.
+
+See `web_app/backend/DEPLOYMENT.md` for detailed instructions.
+
+---
 
 ## License
+
 MIT License
 
-## Support
-If you have questions or issues, please open an issue in the repository. 
+---
+
+## Acknowledgements
+
+Developed with Gemini 2.5 Pro assistance and verified by the author.
+
+---
+
+## Contact
+
+For questions or issues, please open an issue in the repository. 
