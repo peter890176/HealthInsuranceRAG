@@ -121,6 +121,7 @@ const RagQaPage = ({
               if (data.complete) {
                 setAnswer(data);
                 setLoading(false);
+                setCurrentStep(''); // Clear current step when complete
                 return;
               }
             } catch (e) {

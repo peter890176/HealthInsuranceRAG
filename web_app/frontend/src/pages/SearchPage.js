@@ -104,6 +104,7 @@ const SearchPage = ({
               if (data.complete) {
                 setResults(data.results);
                 setLoading(false);
+                setCurrentStep(''); // Clear current step when complete
                 return;
               }
             } catch (e) {
