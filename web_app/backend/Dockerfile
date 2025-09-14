@@ -16,4 +16,4 @@ COPY api/ ./api/
 COPY utils/ ./utils/
 
 # Set the command to run the application using Gunicorn for production
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "app:create_app()"] 
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:8080", "app:create_app()"] 
